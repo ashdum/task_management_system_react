@@ -41,7 +41,7 @@ A modern, feature-rich task management application built with React, TypeScript,
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/task-management-system.git
+git clone https://github.com/ashdum/task_management_system_react.git
 cd task-management-system
 ```
 
@@ -136,4 +136,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 Ashot Dumikyan - ashot.dumikyan@gmail.com
 
-Project Link: [https://github.com/yourusername/task-management-system](https://github.com/yourusername/task-management-system)
+Project Link: [https://github.com/ashdum/task_management_system_react](https://github.com/ashdum/task_management_system_react)
+
