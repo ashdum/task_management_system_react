@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Layout, Users, Shield, Star, Clock, Search, Grid, List } from 'lucide-react';
+import { Plus, Layout, Users, Shield, Star, Clock, Search, Grid, List, BarChart3 } from 'lucide-react';
 import { useBoardStore } from '../store';
 import { getCurrentUser } from '../lib/auth';
 import { Dashboard } from '../types';
+import DashboardStats from './statistics/DashboardStats';
 
 // Default gradient for dashboard background when none is set
 const DEFAULT_GRADIENT = 'linear-gradient(to bottom right, #3B82F6, #8B5CF6)';
@@ -48,6 +49,7 @@ const DashboardList: React.FC<Props> = ({ onDashboardSelect }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'name' | 'recent' | 'starred'>('recent');
+  const [showStats, setShowStats] = useState<string | null>(null);
   const { dashboards, addDashboard, loadDashboards } = useBoardStore();
   const currentUser = getCurrentUser();
 
@@ -55,29 +57,37 @@ const DashboardList: React.FC<Props> = ({ onDashboardSelect }) => {
     loadDashboards();
   }, [loadDashboards]);
 
-  const filteredDashboards = dashboards
-    .filter(dashboard => {
-      if (!searchQuery.trim()) return true;
-      return dashboard.title.toLowerCase().includes(searchQuery.toLowerCase());
-    })
-    .sort((a, b) => {
-      if (sortBy === 'name') {
-        return a.title.localeCompare(b.title);
-      } else if (sortBy === 'recent') {
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      }
-      return 0;
-    });
+  const filteredDashboards = React.useMemo(() => {
+    return dashboards
+      .filter(dashboard => {
+        if (!searchQuery.trim()) return true;
+        return dashboard.title.toLowerCase().includes(searchQuery.toLowerCase());
+      })
+      .sort((a, b) => {
+        if (sortBy === 'name') {
+          return a.title.localeCompare(b.title);
+        } else if (sortBy === 'recent') {
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        }
+        return 0;
+      });
+  }, [dashboards, searchQuery, sortBy]);
 
-  const ownedDashboards = filteredDashboards.filter(
-    dashboard => currentUser && dashboard.ownerIds?.includes(currentUser.id)
+  const ownedDashboards = React.useMemo(() => 
+    filteredDashboards.filter(
+      dashboard => currentUser && dashboard.ownerIds?.includes(currentUser.id)
+    ),
+    [filteredDashboards, currentUser]
   );
 
-  const memberDashboards = filteredDashboards.filter(
-    dashboard => 
-      currentUser && 
-      !dashboard.ownerIds?.includes(currentUser.id) && 
-      dashboard.members?.some(member => member?.id === currentUser.id)
+  const memberDashboards = React.useMemo(() => 
+    filteredDashboards.filter(
+      dashboard => 
+        currentUser && 
+        !dashboard.ownerIds?.includes(currentUser.id) && 
+        dashboard.members?.some(member => member?.id === currentUser.id)
+    ),
+    [filteredDashboards, currentUser]
   );
 
   const handleCreateDashboard = async (title: string) => {
@@ -101,19 +111,19 @@ const DashboardList: React.FC<Props> = ({ onDashboardSelect }) => {
     const isOwner = dashboard.ownerIds?.includes(currentUser.id) || false;
     const memberCount = dashboard.members?.length || 0;
 
+    const backgroundStyle = dashboard.background 
+      ? `linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.6)), url(${dashboard.background})`
+      : DEFAULT_GRADIENT;
+
     if (viewMode === 'grid') {
       return (
-        <button
+        <div 
           onClick={() => onDashboardSelect(dashboard.id)}
-          className="group relative bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden h-[280px]"
+          className="group relative bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden h-[280px] w-full cursor-pointer"
         >
           <div 
             className="absolute inset-0 w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
-            style={{
-              background: dashboard.background 
-                ? `linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.6)), url(${dashboard.background})`
-                : DEFAULT_GRADIENT,
-            }}
+            style={{ background: backgroundStyle }}
           />
           
           <div className="relative h-full p-6 flex flex-col justify-between z-10">
@@ -137,47 +147,54 @@ const DashboardList: React.FC<Props> = ({ onDashboardSelect }) => {
               </div>
             </div>
 
-            {dashboard.members && dashboard.members.length > 0 && (
-              <div className="flex -space-x-2 mt-2">
-                {dashboard.members.slice(0, 3).map(member => (
-                  member && (
-                    <div
-                      key={member.id}
-                      className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center ring-2 ring-white/20"
-                      title={member.email}
-                    >
-                      <span className="text-xs text-white font-medium">
-                        {getUserInitials(member.email)}
+            <div className="flex items-center justify-between">
+              {dashboard.members && dashboard.members.length > 0 && (
+                <div className="flex -space-x-2">
+                  {dashboard.members.slice(0, 3).map(member => (
+                    member && (
+                      <div
+                        key={member.id}
+                        className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center ring-2 ring-white/20"
+                        title={member.email}
+                      >
+                        <span className="text-xs text-white font-medium">
+                          {getUserInitials(member.email)}
+                        </span>
+                      </div>
+                    )
+                  ))}
+                  {dashboard.members.length > 3 && (
+                    <div className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center ring-2 ring-white/20">
+                      <span className="text-xs text-white">
+                        +{dashboard.members.length - 3}
                       </span>
                     </div>
-                  )
-                ))}
-                {dashboard.members.length > 3 && (
-                  <div className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center ring-2 ring-white/20">
-                    <span className="text-xs text-white">
-                      +{dashboard.members.length - 3}
-                    </span>
-                  </div>
-                )}
+                  )}
+                </div>
+              )}
+              <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowStats(dashboard.id);
+                }}
+                className="p-2 bg-white/10 backdrop-blur-sm rounded-full hover:bg-white/20 transition-colors cursor-pointer"
+              >
+                <BarChart3 size={16} className="text-white" />
               </div>
-            )}
+            </div>
           </div>
-        </button>
+        </div>
       );
     }
 
     return (
-      <button
+      <div 
         onClick={() => onDashboardSelect(dashboard.id)}
-        className="w-full p-4 rounded-lg hover:shadow-md transition-all duration-300 flex items-center justify-between group overflow-hidden relative"
+        className="w-full p-4 rounded-lg hover:shadow-md transition-all duration-300 flex items-center justify-between group overflow-hidden relative cursor-pointer"
       >
         <div 
           className="absolute inset-0 w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
-          style={{
-            background: dashboard.background 
-              ? `linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.7)), url(${dashboard.background})`
-              : DEFAULT_GRADIENT,
-          }}
+          style={{ background: backgroundStyle }}
         />
 
         <div className="relative z-10 flex items-center justify-between w-full">
@@ -223,10 +240,19 @@ const DashboardList: React.FC<Props> = ({ onDashboardSelect }) => {
                 <Users size={16} />
                 <span className="text-sm">{memberCount}</span>
               </div>
+              <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowStats(dashboard.id);
+                }}
+                className="p-2 bg-white/10 backdrop-blur-sm rounded-full hover:bg-white/20 transition-colors cursor-pointer"
+              >
+                <BarChart3 size={16} className="text-white" />
+              </div>
             </div>
           </div>
         </div>
-      </button>
+      </div>
     );
   };
 
@@ -243,6 +269,8 @@ const DashboardList: React.FC<Props> = ({ onDashboardSelect }) => {
       </div>
     );
   }
+
+  const currentDashboard = dashboards.find(d => d.id === showStats);
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -349,6 +377,14 @@ const DashboardList: React.FC<Props> = ({ onDashboardSelect }) => {
           </div>
         )}
       </div>
+
+      {showStats && currentDashboard && (
+        <DashboardStats
+          dashboard={currentDashboard}
+          isOpen={true}
+          onClose={() => setShowStats(null)}
+        />
+      )}
     </div>
   );
 };

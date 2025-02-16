@@ -48,22 +48,21 @@ const Column: React.FC<Props> = ({ column, index, searchQuery }) => {
         <div
           {...provided.draggableProps}
           ref={provided.innerRef}
-          className={`bg-gray-100 p-4 rounded-lg w-80 flex-shrink-0 flex flex-col ${
+          className={`bg-gray-100 p-3 rounded-lg w-72 flex-shrink-0 flex flex-col ${
             snapshot.isDragging ? 'shadow-2xl rotate-2 scale-105 z-40' : ''
           }`}
           style={{
             ...provided.draggableProps.style,
-            height: 'fit-content',
-            maxHeight: 'calc(100vh - 13rem)',
+            height: '100%',
           }}
         >
           <div 
             {...provided.dragHandleProps}
-            className="flex items-center justify-between mb-4 cursor-grab active:cursor-grabbing"
+            className="flex items-center justify-between mb-3 cursor-grab active:cursor-grabbing"
           >
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-semibold">{column.title}</h2>
-              <span className="text-sm text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full">
+              <h2 className="text-base font-semibold">{column.title}</h2>
+              <span className="text-xs text-gray-500 bg-gray-200 px-1.5 py-0.5 rounded-full">
                 {filteredCards.length}
               </span>
             </div>
@@ -72,7 +71,7 @@ const Column: React.FC<Props> = ({ column, index, searchQuery }) => {
                 onClick={() => setShowMenu(!showMenu)}
                 className="p-1 hover:bg-gray-200 rounded-lg transition-colors"
               >
-                <MoreVertical size={20} />
+                <MoreVertical size={16} />
               </button>
               
               {showMenu && (
@@ -82,9 +81,9 @@ const Column: React.FC<Props> = ({ column, index, searchQuery }) => {
                       setIsNewCardModalOpen(true);
                       setShowMenu(false);
                     }}
-                    className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 w-full text-left"
+                    className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 w-full text-left text-sm"
                   >
-                    <Plus size={16} />
+                    <Plus size={14} />
                     Add New Task
                   </button>
                   <button
@@ -92,9 +91,9 @@ const Column: React.FC<Props> = ({ column, index, searchQuery }) => {
                       archiveColumn(column.id);
                       setShowMenu(false);
                     }}
-                    className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 w-full text-left"
+                    className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 w-full text-left text-sm"
                   >
-                    <Archive size={16} />
+                    <Archive size={14} />
                     Archive Column
                   </button>
                   <button
@@ -102,9 +101,9 @@ const Column: React.FC<Props> = ({ column, index, searchQuery }) => {
                       deleteColumn(column.id);
                       setShowMenu(false);
                     }}
-                    className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-gray-100 w-full text-left"
+                    className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-gray-100 w-full text-left text-sm"
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={14} />
                     Delete Column
                   </button>
                 </div>
@@ -117,12 +116,9 @@ const Column: React.FC<Props> = ({ column, index, searchQuery }) => {
               <div
                 ref={provided.innerRef}
                 {...provided.droppableProps}
-                className={`flex-1 overflow-y-auto min-h-[200px] ${
+                className={`flex-1 overflow-y-auto ${
                   snapshot.isDraggingOver ? 'bg-blue-50' : ''
                 }`}
-                style={{
-                  minHeight: '200px',
-                }}
               >
                 {filteredCards.map((card, cardIndex) => (
                   <Card 
@@ -139,9 +135,9 @@ const Column: React.FC<Props> = ({ column, index, searchQuery }) => {
 
           <button
             onClick={() => setIsNewCardModalOpen(true)}
-            className="mt-4 flex items-center gap-2 text-gray-600 hover:text-gray-900 w-full px-3 py-2 rounded-lg hover:bg-gray-200 transition-colors"
+            className="mt-2 flex items-center gap-1 text-gray-600 hover:text-gray-900 w-full px-2 py-1.5 rounded-lg hover:bg-gray-200 transition-colors text-sm"
           >
-            <Plus size={20} />
+            <Plus size={16} />
             Add a card
           </button>
 

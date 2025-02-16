@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { DragDropContext, Droppable, DropResult } from '@hello-pangea/dnd';
-import { Plus, ArrowLeft, Search } from 'lucide-react';
+import { Plus, ArrowLeft, Search, BarChart3 } from 'lucide-react';
 import { useBoardStore } from '../store';
 import Column from './Column';
 import DashboardList from './DashboardList';
@@ -9,6 +9,7 @@ import Header from './Header';
 import { User } from '../types';
 import NewColumnModal from './NewColumnModal';
 import DashboardSettings from './DashboardSettings';
+import DashboardStats from './statistics/DashboardStats';
 
 interface DashboardProps {
   user: User;
@@ -17,6 +18,7 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ user, onSignOut }) => {
   const [showDashboardList, setShowDashboardList] = useState(true);
+  const [showStats, setShowStats] = useState(false);
   const { 
     columns, 
     moveCard, 
@@ -36,14 +38,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onSignOut }) => {
     if (!columns) return;
     
     if (searchQuery.trim() === '') {
-      // Only show non-archived columns
       setFilteredColumns(columns.filter(column => !column.is_archive));
       return;
     }
 
     const searchLower = searchQuery.toLowerCase();
     const filtered = columns
-      .filter(column => !column.is_archive) // Filter out archived columns
+      .filter(column => !column.is_archive)
       .map(column => ({
         ...column,
         cards: column.cards.filter(card => {
@@ -123,43 +124,52 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onSignOut }) => {
       
       {showDashboardList ? (
         <div className="flex-grow bg-gray-50">
-          <DashboardList onDashboardSelect={handleDashboardSelect} />
+          <div className="w-4/5 mx-auto">
+            <DashboardList onDashboardSelect={handleDashboardSelect} />
+          </div>
         </div>
       ) : (
         <div 
-          className="flex-grow p-8 transition-all duration-300 bg-cover bg-center"
+          className="flex-grow p-4 transition-all duration-300 bg-cover bg-center"
           style={{
             backgroundImage: currentDashboard?.background 
               ? `linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), url(${currentDashboard.background})`
               : 'linear-gradient(to bottom right, #3B82F6, #8B5CF6)'
           }}
         >
-          <div className="max-w-7xl mx-auto">
-            <div className="flex justify-between items-center mb-8">
+          <div className="w-4/5 mx-auto h-full flex flex-col">
+            <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => setShowDashboardList(true)}
                   className="text-white hover:bg-white/10 p-2 rounded-lg transition-colors"
                 >
-                  <ArrowLeft size={24} />
+                  <ArrowLeft size={20} />
                 </button>
-                <h1 className="text-3xl font-bold text-white">
+                <h1 className="text-2xl font-bold text-white">
                   {currentDashboard?.title || 'Task Management System'}
                 </h1>
               </div>
               <div className="flex items-center gap-4">
                 <div className="relative">
                   <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                    <Search size={20} className="text-gray-400" />
+                    <Search size={16} className="text-gray-400" />
                   </div>
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search"
-                    className="pl-10 pr-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-64"
+                    className="pl-9 pr-4 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-48 text-sm"
                   />
                 </div>
+                <button
+                  onClick={() => setShowStats(true)}
+                  className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                  title="View Statistics"
+                >
+                  <BarChart3 size={20} />
+                </button>
                 {currentDashboard && canEditDashboard && (
                   <DashboardSettings
                     dashboard={currentDashboard}
@@ -169,9 +179,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onSignOut }) => {
                 {canEditDashboard && (
                   <button
                     onClick={() => setIsNewColumnModalOpen(true)}
-                    className="bg-white text-blue-500 px-4 py-2 rounded-lg hover:bg-blue-50 transition-colors flex items-center gap-2"
+                    className="bg-white text-blue-500 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors flex items-center gap-1 text-sm"
                   >
-                    <Plus size={20} />
+                    <Plus size={16} />
                     Add Column
                   </button>
                 )}
@@ -184,7 +194,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onSignOut }) => {
                   <div
                     {...provided.droppableProps}
                     ref={provided.innerRef}
-                    className="flex gap-6 overflow-x-auto pb-4 items-start"
+                    className="flex gap-4 overflow-x-auto flex-grow pb-4 items-start h-[calc(100vh-12rem)]"
                   >
                     {sortedColumns.map((column, index) => (
                       <Column 
@@ -209,6 +219,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onSignOut }) => {
         onClose={() => setIsNewColumnModalOpen(false)}
         onAdd={handleAddColumn}
       />
+
+      {showStats && currentDashboard && (
+        <DashboardStats
+          dashboard={currentDashboard}
+          isOpen={true}
+          onClose={() => setShowStats(false)}
+        />
+      )}
     </div>
   );
 }
