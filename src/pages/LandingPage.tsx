@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle, Layout, Users, Clock } from 'lucide-react';
-import AuthModal from '../components/AuthModal';
-import Footer from '../components/Footer';
+import { Layout, Users, Clock } from 'lucide-react';
+import AuthModal from '../components/auth/AuthModal';
+import Footer from '../components/layout/Footer';
 import { User } from '../types';
 
 interface Props {
@@ -15,9 +15,12 @@ const LandingPage: React.FC<Props> = ({ setUser }) => {
   const navigate = useNavigate();
 
   const handleAuthSuccess = (email: string) => {
-    const mockUser = {
+    const mockUser: User = {
       id: Math.random().toString(),
       email,
+      createdAt: new Date().toISOString(),
+      fullName: email.split('@')[0], // Create a simple fullName from email
+      updatedAt: new Date().toISOString()
     };
     localStorage.setItem('mockUser', JSON.stringify(mockUser));
     setUser(mockUser);

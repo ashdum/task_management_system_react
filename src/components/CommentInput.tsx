@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageSquare } from 'lucide-react';
+import { Send } from 'lucide-react';
+import { RichTextEditor } from './RichTextEditor';
 
 interface CommentInputProps {
   onSubmit: (text: string) => void;
@@ -42,7 +43,7 @@ const CommentInput: React.FC<CommentInputProps> = ({ onSubmit }) => {
             textareaRef.current?.focus();
           }}
         >
-          <MessageSquare size={20} className="mr-2" />
+          <Send size={20} className="mr-2" />
           Write a comment...
         </div>
       )}

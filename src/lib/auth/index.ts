@@ -57,6 +57,7 @@ export const signUp = async (email: string, fullName: string, password: string):
       id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       email,
       fullName,
+      createdAt: new Date().toISOString(),
     };
 
     // Save user to local storage

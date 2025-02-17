@@ -1,12 +1,9 @@
-import React, { useState } from 'react';
-import { 
-  BarChart3, X, Calendar, Users, Tags, Layout,
-  CheckSquare, MessageSquare, Paperclip 
-} from 'lucide-react';
-import { Dashboard, DashboardStats as DashboardStatsType, StatFilter } from '../../types';
+import React from 'react';
+import { BarChart3, CheckSquare2, Clock, Tag, Users } from 'lucide-react';
+import { useBoardStore } from '../../store';
 
 interface DashboardStatsProps {
-  dashboard: Dashboard;
+  dashboard: any;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -16,15 +13,15 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({
   isOpen,
   onClose,
 }) => {
-  const [filter, setFilter] = useState<StatFilter>({
+  const [filter, setFilter] = React.useState({
     dateRange: 'all',
     members: [],
     labels: [],
     columns: [],
   });
 
-  const calculateStats = (): DashboardStatsType => {
-    const stats: DashboardStatsType = {
+  const calculateStats = (): any => {
+    const stats: any = {
       totalCards: 0,
       completedCards: 0,
       totalMembers: dashboard.members.length,
@@ -43,16 +40,16 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({
     const startDate = getStartDate(filter.dateRange);
     const now = new Date().toISOString().split('T')[0]; // Today's date for default activity
 
-    dashboard.columns.forEach(column => {
+    dashboard.columns.forEach((column) => {
       if (filter.columns.length > 0 && !filter.columns.includes(column.id)) {
         return;
       }
 
       stats.cardsByColumn[column.title] = 0;
 
-      column.cards.forEach(card => {
+      column.cards.forEach((card) => {
         // Safely handle card date - default to dashboard creation date if card date is missing
-        const cardDate = card.createdAt 
+        const cardDate = card.createdAt
           ? new Date(card.createdAt)
           : new Date(dashboard.createdAt);
 
@@ -61,14 +58,12 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({
         }
 
         // Filter by members
-        if (filter.members.length > 0 && 
-            !card.members.some(member => filter.members.includes(member.id))) {
+        if (filter.members.length > 0 && !card.members.some((member) => filter.members.includes(member.id))) {
           return;
         }
 
         // Filter by labels
-        if (filter.labels.length > 0 && 
-            !card.labels.some(label => filter.labels.includes(label.id))) {
+        if (filter.labels.length > 0 && !card.labels.some((label) => filter.labels.includes(label.id))) {
           return;
         }
 
@@ -82,21 +77,21 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({
         stats.totalAttachments += card.attachments?.length || 0;
 
         // Process checklists
-        card.checklists.forEach(checklist => {
+        card.checklists.forEach((checklist) => {
           stats.totalChecklists++;
-          const completedItems = checklist.items.filter(item => item.completed).length;
+          const completedItems = checklist.items.filter((item) => item.completed).length;
           if (completedItems === checklist.items.length) {
             stats.completedChecklists++;
           }
         });
 
         // Process labels
-        card.labels.forEach(label => {
+        card.labels.forEach((label) => {
           stats.cardsByLabel[label.text] = (stats.cardsByLabel[label.text] || 0) + 1;
         });
 
         // Process members
-        card.members.forEach(member => {
+        card.members.forEach((member) => {
           stats.cardsByMember[member.email] = (stats.cardsByMember[member.email] || 0) + 1;
         });
 
@@ -112,14 +107,13 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({
     });
 
     // Calculate completion rate
-    const doneColumn = dashboard.columns.find(col => 
-      col.title.toLowerCase().includes('done') || 
-      col.title.toLowerCase().includes('completed')
+    const doneColumn = dashboard.columns.find((col) =>
+      col.title.toLowerCase().includes('done') || col.title.toLowerCase().includes('completed')
     );
     if (doneColumn) {
       stats.completedCards = doneColumn.cards.length;
-      stats.completionRate = stats.totalCards > 0 
-        ? (stats.completedCards / stats.totalCards) * 100 
+      stats.completionRate = stats.totalCards > 0
+        ? (stats.completedCards / stats.totalCards) * 100
         : 0;
     }
 
@@ -174,7 +168,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({
           {/* Filters */}
           <div className="space-y-4">
             <h3 className="text-sm font-medium text-gray-700">Filters</h3>
-            
+
             <div>
               <label className="text-sm text-gray-600">Date Range</label>
               <select
@@ -193,7 +187,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({
             <div>
               <label className="text-sm text-gray-600">Members</label>
               <div className="mt-1 space-y-2">
-                {dashboard.members.map(member => (
+                {dashboard.members.map((member) => (
                   <label key={member.id} className="flex items-center gap-2">
                     <input
                       type="checkbox"
@@ -201,7 +195,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({
                       onChange={(e) => {
                         const newMembers = e.target.checked
                           ? [...filter.members, member.id]
-                          : filter.members.filter(id => id !== member.id);
+                          : filter.members.filter((id) => id !== member.id);
                         setFilter({ ...filter, members: newMembers });
                       }}
                       className="rounded text-blue-600"
@@ -216,10 +210,10 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({
               <label className="text-sm text-gray-600">Labels</label>
               <div className="mt-1 space-y-2">
                 {Array.from(new Set(
-                  dashboard.columns.flatMap(col => 
-                    col.cards.flatMap(card => card.labels)
+                  dashboard.columns.flatMap((col) =>
+                    col.cards.flatMap((card) => card.labels)
                   )
-                )).map(label => (
+                )).map((label) => (
                   <label key={label.id} className="flex items-center gap-2">
                     <input
                       type="checkbox"
@@ -227,12 +221,12 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({
                       onChange={(e) => {
                         const newLabels = e.target.checked
                           ? [...filter.labels, label.id]
-                          : filter.labels.filter(id => id !== label.id);
+                          : filter.labels.filter((id) => id !== label.id);
                         setFilter({ ...filter, labels: newLabels });
                       }}
                       className="rounded text-blue-600"
                     />
-                    <span 
+                    <span
                       className="text-sm px-2 py-0.5 rounded-full text-white"
                       style={{ backgroundColor: label.color }}
                     >
@@ -256,7 +250,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({
 
             <div className="bg-green-50 p-4 rounded-lg">
               <div className="flex items-center gap-2 text-green-600 mb-1">
-                <CheckSquare size={16} />
+                <CheckSquare2 size={16} />
                 <span className="text-sm font-medium">Completed</span>
               </div>
               <p className="text-2xl font-bold text-green-700">
@@ -354,8 +348,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({
                         {new Date(date).toLocaleDateString()}: {count}
                       </span>
                     </div>
-                  ))
-                }
+                  ))}
               </div>
             </div>
           </div>

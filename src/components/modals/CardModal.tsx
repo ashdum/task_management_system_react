@@ -1,16 +1,31 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
-  X, Save, Users, Tag, CheckSquare, 
-  MessageSquare, Plus, Trash2, Edit2, Paperclip 
+  X, AlignLeft, Users, Tag, CheckSquare, Image, Paperclip, Clock, 
+  MessageSquare, Plus, Trash2, Edit2 
 } from 'lucide-react';
-import { Card as CardType, CardMember, Label, Checklist, ChecklistItem, Comment } from '../types';
-import { useBoardStore } from '../store';
-import RichTextEditor from './RichTextEditor';
-import CommentInput from './CommentInput';
-import AttachmentButton from './AttachmentButton';
-import { getCurrentUser } from '../lib/auth';
+import { 
+  Card, 
+  User, 
+  Label, 
+  Checklist, 
+  Comment, 
+  ChecklistItem, 
+  CardMember, 
+  Attachment 
+} from '../../types';
+import { useBoardStore } from '../../store';
+import { RichTextEditor } from '../common/RichTextEditor';
+import AttachmentButton from '../AttachmentButton'; // Ensure this path is correct or update it to the correct path
+import CommentInput from '../CommentInput';
+import { getCurrentUser } from '../../lib/auth';
 
-const PREDEFINED_LABELS: Label[] = [
+interface PredefinedLabel extends Label {
+  id: string;
+  text: string;
+  color: string;
+}
+
+const PREDEFINED_LABELS: PredefinedLabel[] = [
   { id: 'label1', text: 'Bug', color: '#EF4444' },
   { id: 'label2', text: 'Feature', color: '#3B82F6' },
   { id: 'label3', text: 'Enhancement', color: '#10B981' },
@@ -20,7 +35,7 @@ const PREDEFINED_LABELS: Label[] = [
 ];
 
 interface CardModalProps {
-  card: CardType;
+  card: Card;
   columnId: string;
   isOpen: boolean;
   onClose: () => void;
@@ -39,6 +54,8 @@ const CardModal: React.FC<CardModalProps> = ({ card, columnId, isOpen, onClose }
   const [labels, setLabels] = useState<Label[]>(card.labels || []);
   const [checklists, setChecklists] = useState<Checklist[]>(card.checklists || []);
   const [comments, setComments] = useState<Comment[]>(card.comments || []);
+  const [attachments, setAttachments] = useState<Attachment[]>(card.attachments || []);
+  const [dueDate, setDueDate] = useState<string | undefined>(card.dueDate);
   const [newChecklistTitle, setNewChecklistTitle] = useState('');
   const [newChecklistItemText, setNewChecklistItemText] = useState('');
   const [activeMenu, setActiveMenu] = useState<'members' | 'labels' | 'checklist' | null>(null);
@@ -85,7 +102,9 @@ const CardModal: React.FC<CardModalProps> = ({ card, columnId, isOpen, onClose }
   }, []);
 
   const handleSave = () => {
-    updateCard(columnId, card.id, {
+    if (!currentUser) return;
+    
+    const updatedCard: Partial<Card> = {
       ...card,
       title,
       description,
@@ -94,7 +113,12 @@ const CardModal: React.FC<CardModalProps> = ({ card, columnId, isOpen, onClose }
       labels,
       checklists,
       comments,
-    });
+      attachments,
+      dueDate,
+      updatedAt: new Date().toISOString()
+    };
+
+    updateCard(columnId, card.id, updatedCard);
     onClose();
   };
 
@@ -109,17 +133,28 @@ const CardModal: React.FC<CardModalProps> = ({ card, columnId, isOpen, onClose }
   };
 
   const handleLinkAdd = (url: string) => {
-    // Add link handling logic here
-    console.log('Adding link:', url);
+    const newAttachment: Attachment = {
+      id: `attachment-${Date.now()}`,
+      name: url.split('/').pop() || 'Link',
+      url,
+      type: 'link',
+      size: 0,
+      createdAt: new Date().toISOString()
+    };
+    setAttachments(prev => [...prev, newAttachment]);
   };
 
-  const toggleMember = (member: CardMember) => {
+  const toggleMember = (member: User) => {
     setMembers(prev => {
       const exists = prev.find(m => m.id === member.id);
       if (exists) {
         return prev.filter(m => m.id !== member.id);
       }
-      return [...prev, member];
+      const newMember: CardMember = {
+        id: member.id,
+        email: member.email
+      };
+      return [...prev, newMember];
     });
   };
 
@@ -139,7 +174,7 @@ const CardModal: React.FC<CardModalProps> = ({ card, columnId, isOpen, onClose }
     const newChecklist: Checklist = {
       id: `checklist-${Date.now()}`,
       title: newChecklistTitle,
-      items: [],
+      items: []
     };
 
     setChecklists(prev => [...prev, newChecklist]);
@@ -152,15 +187,17 @@ const CardModal: React.FC<CardModalProps> = ({ card, columnId, isOpen, onClose }
 
     const newItem: ChecklistItem = {
       id: `item-${Date.now()}`,
-      text: newChecklistItemText.trim(),
-      completed: false,
+      text: newChecklistItemText,
+      completed: false
     };
 
-    setChecklists(prev => prev.map(list => 
-      list.id === checklistId
-        ? { ...list, items: [...list.items, newItem] }
-        : list
-    ));
+    setChecklists(prev => 
+      prev.map(list => 
+        list.id === checklistId 
+          ? { ...list, items: [...list.items, newItem] }
+          : list
+      )
+    );
 
     setNewChecklistItemText('');
   };
@@ -444,7 +481,6 @@ const CardModal: React.FC<CardModalProps> = ({ card, columnId, isOpen, onClose }
               onClick={handleSave}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
-              <Save size={20} />
               Save Changes
             </button>
           </div>

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Paperclip, Image as ImageIcon, Link } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Paperclip, Link } from 'lucide-react';
 
 interface AttachmentButtonProps {
   onFileSelect: (files: FileList) => void;

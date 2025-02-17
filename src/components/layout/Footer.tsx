@@ -7,7 +7,7 @@ const Footer: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <p className="text-gray-400">
-            © {new Date().getFullYear()}, Made with ❤️ by Ashot Dumikyan
+            {new Date().getFullYear()}, Made with by Ashot Dumikyan
           </p>
           
           <div className="flex items-center gap-4">

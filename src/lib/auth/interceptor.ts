@@ -121,6 +121,7 @@ export class AuthInterceptor {
           error: {
             message: 'Authentication failed',
             code: 'AUTH_ERROR',
+            status: 401,
           },
         };
       }
@@ -139,6 +140,7 @@ export class AuthInterceptor {
           error: {
             message: 'Request failed after token refresh',
             code: 'API_ERROR',
+            status: 401,
           },
         };
       }
@@ -152,6 +154,7 @@ export class AuthInterceptor {
         error: {
           message: 'Request failed',
           code: 'API_ERROR',
+          status: 401,
         },
       };
     }

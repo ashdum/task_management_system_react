@@ -27,8 +27,8 @@ class DataSourceFactory {
         return new LocalDataSource();
       case DataSourceType.REST:
         return new RestDataSource();
-      case DataSourceType.GRAPHQL:
-        return new GraphQLDataSource();
+      /* case DataSourceType.GRAPHQL:
+        return new GraphQLDataSource(); */
       default:
         throw new Error(`Unsupported data source type: ${sourceType}`);
     }

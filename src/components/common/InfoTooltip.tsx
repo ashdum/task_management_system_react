@@ -6,7 +6,7 @@ interface InfoTooltipProps {
   position?: 'top' | 'right' | 'bottom' | 'left';
 }
 
-const InfoTooltip: React.FC<InfoTooltipProps> = ({ content, position = 'top' }) => {
+export const InfoTooltip: React.FC<InfoTooltipProps> = ({ content, position = 'top' }) => {
   const [isVisible, setIsVisible] = useState(false);
 
   const positionClasses = {
@@ -49,5 +49,3 @@ const InfoTooltip: React.FC<InfoTooltipProps> = ({ content, position = 'top' }) 
     </div>
   );
 };
-
-export default InfoTooltip;
