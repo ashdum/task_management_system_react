@@ -1,14 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Mail, User, Eye, EyeOff, Github, Chrome } from 'lucide-react';
-import { signIn, signUp } from '../lib/auth';
+import { signIn, signUp } from '../../lib/auth';
 import { 
   UserNotFoundError, 
   InvalidPasswordError, 
   UserExistsError, 
   AuthError,
   ValidationError 
-} from '../lib/auth/errors';
-import FormField from './common/FormField';
+} from '../../lib/auth/errors';
+import { FormField } from '../common/FormField';
 
 interface AuthModalProps {
   isOpen: boolean;

@@ -1,12 +1,16 @@
 import { config } from '../../config';
 import type { DataSource } from './types';
-import type {
-  User,
-  Dashboard,
-  Card,
-  Column,
+import {
   ApiResponse,
+  AuthResponse,
+  Dashboard,
+  DashboardInvitation,
+  User,
 } from '../../types';
+
+type GraphQLResponse<T> = {
+  [K in keyof T]: T[K];
+}
 
 export class GraphQLDataSource implements DataSource {
   private baseUrl: string;
@@ -18,10 +22,10 @@ export class GraphQLDataSource implements DataSource {
     this.endpoint = endpoints.graphql;
   }
 
-  private async query<T>(
+  private async query<T, R = T>(
     query: string,
     variables?: Record<string, any>
-  ): Promise<ApiResponse<T>> {
+  ): Promise<ApiResponse<R>> {
     try {
       const response = await fetch(`${this.baseUrl}${this.endpoint}`, {
         method: 'POST',
@@ -36,62 +40,165 @@ export class GraphQLDataSource implements DataSource {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        return {
+          error: {
+            message: `HTTP error! status: ${response.status}`,
+            code: 'API_ERROR',
+            status: response.status
+          }
+        };
       }
 
       const result = await response.json();
       
       if (result.errors) {
-        throw new Error(result.errors[0].message);
+        const graphQLError = result.errors[0];
+        return {
+          error: {
+            message: graphQLError.message,
+            code: graphQLError.extensions?.code || 'GRAPHQL_ERROR',
+            status: graphQLError.extensions?.status || 400
+          }
+        };
       }
 
-      return { data: result.data };
+      return { 
+        data: result.data as unknown as R,
+        status: 200 
+      };
     } catch (error) {
       return {
         error: {
           message: error instanceof Error ? error.message : 'Unknown error occurred',
           code: 'API_ERROR',
-        },
+          status: 500
+        }
       };
     }
   }
 
   // Auth methods
-  async login(email: string, password: string): Promise<ApiResponse<User>> {
-    const response = await this.query<{ login: User }>(
-      `mutation Login($email: String!, $password: String!) {
+  async login(email: string, password: string): Promise<ApiResponse<AuthResponse>> {
+    const mutation = `
+      mutation Login($email: String!, $password: String!) {
         login(email: $email, password: $password) {
           id
           email
+          fullName
+          createdAt
+          updatedAt
+          token
         }
-      }`,
-      { email, password }
-    );
-
-    return response.data ? { data: response.data.login } : response;
+      }
+    `;
+    
+    return this.query<{ login: AuthResponse }>(mutation, { email, password })
+      .then(response => ({
+        data: response.data?.login,
+        status: response.status
+      }));
   }
 
-  async register(email: string, password: string): Promise<ApiResponse<User>> {
-    const response = await this.query<{ register: User }>(
-      `mutation Register($email: String!, $password: String!) {
+  async register(email: string, password: string): Promise<ApiResponse<AuthResponse>> {
+    const mutation = `
+      mutation Register($email: String!, $password: String!) {
         register(email: $email, password: $password) {
           id
           email
+          fullName
+          createdAt
+          updatedAt
+          token
         }
-      }`,
-      { email, password }
-    );
-
-    return response.data ? { data: response.data.register } : response;
+      }
+    `;
+    
+    return this.query<{ register: AuthResponse }>(mutation, { email, password })
+      .then(response => ({
+        data: response.data?.register,
+        status: response.status
+      }));
   }
 
   async logout(): Promise<void> {
-    localStorage.removeItem(config.getConfig().auth.tokenKey);
+    const mutation = `
+      mutation Logout {
+        logout
+      }
+    `;
+    
+    await this.query(mutation);
+  }
+
+  // Dashboard invitation methods
+  async inviteToDashboard(
+    dashboardId: string,
+    email: string
+  ): Promise<ApiResponse<DashboardInvitation>> {
+    const response = await this.query<{ inviteToDashboard: DashboardInvitation }, DashboardInvitation>(
+      `mutation InviteToDashboard($dashboardId: ID!, $email: String!) {
+        inviteToDashboard(dashboardId: $dashboardId, email: $email) {
+          id
+          dashboardId
+          inviterId
+          inviterEmail
+          inviteeEmail
+          status
+          createdAt
+        }
+      }`,
+      { dashboardId, email }
+    );
+
+    if (response.error) {
+      return response;
+    }
+
+    return {
+      data: (response.data as any).inviteToDashboard,
+      status: 201
+    };
+  }
+
+  async acceptInvitation(invitationId: string): Promise<ApiResponse<void>> {
+    const response = await this.query<{ acceptInvitation: boolean }, void>(
+      `mutation AcceptInvitation($invitationId: ID!) {
+        acceptInvitation(invitationId: $invitationId)
+      }`,
+      { invitationId }
+    );
+
+    if (response.error) {
+      return response;
+    }
+
+    return {
+      data: undefined,
+      status: 200
+    };
+  }
+
+  async rejectInvitation(invitationId: string): Promise<ApiResponse<void>> {
+    const response = await this.query<{ rejectInvitation: boolean }, void>(
+      `mutation RejectInvitation($invitationId: ID!) {
+        rejectInvitation(invitationId: $invitationId)
+      }`,
+      { invitationId }
+    );
+
+    if (response.error) {
+      return response;
+    }
+
+    return {
+      data: undefined,
+      status: 200
+    };
   }
 
   // Dashboard methods
   async getDashboards(): Promise<ApiResponse<Dashboard[]>> {
-    const response = await this.query<{ dashboards: Dashboard[] }>(
+    const response = await this.query<{ dashboards: Dashboard[] }, Dashboard[]>(
       `query GetDashboards {
         dashboards {
           id
@@ -101,6 +208,8 @@ export class GraphQLDataSource implements DataSource {
           members {
             id
             email
+            fullName
+            avatar
           }
           columns {
             id
@@ -108,269 +217,25 @@ export class GraphQLDataSource implements DataSource {
             order
             cards {
               id
-              number
               title
               description
+              members {
+                id
+                email
+              }
             }
           }
         }
       }`
     );
 
-    return response.data ? { data: response.data.dashboards } : response;
-  }
+    if (response.error) {
+      return response;
+    }
 
-  async getDashboard(id: string): Promise<ApiResponse<Dashboard>> {
-    const response = await this.query<{ dashboard: Dashboard }>(
-      `query GetDashboard($id: ID!) {
-        dashboard(id: $id) {
-          id
-          title
-          createdAt
-          ownerIds
-          members {
-            id
-            email
-          }
-          columns {
-            id
-            title
-            order
-            cards {
-              id
-              number
-              title
-              description
-            }
-          }
-        }
-      }`,
-      { id }
-    );
-
-    return response.data ? { data: response.data.dashboard } : response;
-  }
-
-  async createDashboard(title: string, userId: string): Promise<ApiResponse<Dashboard>> {
-    const response = await this.query<{ createDashboard: Dashboard }>(
-      `mutation CreateDashboard($input: CreateDashboardInput!) {
-        createDashboard(input: $input) {
-          id
-          title
-          createdAt
-          ownerIds
-          members {
-            id
-            email
-          }
-          columns {
-            id
-            title
-            order
-          }
-        }
-      }`,
-      { input: { title, userId } }
-    );
-
-    return response.data ? { data: response.data.createDashboard } : response;
-  }
-
-  async updateDashboard(id: string, data: Partial<Dashboard>): Promise<ApiResponse<Dashboard>> {
-    const response = await this.query<{ updateDashboard: Dashboard }>(
-      `mutation UpdateDashboard($id: ID!, $input: UpdateDashboardInput!) {
-        updateDashboard(id: $id, input: $input) {
-          id
-          title
-          createdAt
-          ownerIds
-          members {
-            id
-            email
-          }
-          columns {
-            id
-            title
-            order
-          }
-        }
-      }`,
-      { id, input: data }
-    );
-
-    return response.data ? { data: response.data.updateDashboard } : response;
-  }
-
-  async deleteDashboard(id: string): Promise<ApiResponse<void>> {
-    return this.query<void>(
-      `mutation DeleteDashboard($id: ID!) {
-        deleteDashboard(id: $id)
-      }`,
-      { id }
-    );
-  }
-
-  // Column methods
-  async createColumn(dashboardId: string, title: string): Promise<ApiResponse<Column>> {
-    const response = await this.query<{ createColumn: Column }>(
-      `mutation CreateColumn($input: CreateColumnInput!) {
-        createColumn(input: $input) {
-          id
-          title
-          order
-          cards {
-            id
-            number
-            title
-          }
-        }
-      }`,
-      { input: { dashboardId, title } }
-    );
-
-    return response.data ? { data: response.data.createColumn } : response;
-  }
-
-  async updateColumn(
-    dashboardId: string,
-    columnId: string,
-    data: Partial<Column>
-  ): Promise<ApiResponse<Column>> {
-    const response = await this.query<{ updateColumn: Column }>(
-      `mutation UpdateColumn($dashboardId: ID!, $columnId: ID!, $input: UpdateColumnInput!) {
-        updateColumn(dashboardId: $dashboardId, columnId: $columnId, input: $input) {
-          id
-          title
-          order
-          cards {
-            id
-            number
-            title
-          }
-        }
-      }`,
-      { dashboardId, columnId, input: data }
-    );
-
-    return response.data ? { data: response.data.updateColumn } : response;
-  }
-
-  async deleteColumn(dashboardId: string, columnId: string): Promise<ApiResponse<void>> {
-    return this.query<void>(
-      `mutation DeleteColumn($dashboardId: ID!, $columnId: ID!) {
-        deleteColumn(dashboardId: $dashboardId, columnId: $columnId)
-      }`,
-      { dashboardId, columnId }
-    );
-  }
-
-  async updateColumnOrder(
-    dashboardId: string,
-    columnIds: string[]
-  ): Promise<ApiResponse<void>> {
-    return this.query<void>(
-      `mutation UpdateColumnOrder($dashboardId: ID!, $columnIds: [ID!]!) {
-        updateColumnOrder(dashboardId: $dashboardId, columnIds: $columnIds)
-      }`,
-      { dashboardId, columnIds }
-    );
-  }
-
-  // Card methods
-  async createCard(
-    dashboardId: string,
-    columnId: string,
-    title: string
-  ): Promise<ApiResponse<Card>> {
-    const response = await this.query<{ createCard: Card }>(
-      `mutation CreateCard($input: CreateCardInput!) {
-        createCard(input: $input) {
-          id
-          number
-          title
-          description
-          columnId
-          members {
-            id
-            email
-          }
-          labels {
-            id
-            text
-            color
-          }
-        }
-      }`,
-      { input: { dashboardId, columnId, title } }
-    );
-
-    return response.data ? { data: response.data.createCard } : response;
-  }
-
-  async updateCard(
-    dashboardId: string,
-    columnId: string,
-    cardId: string,
-    data: Partial<Card>
-  ): Promise<ApiResponse<Card>> {
-    const response = await this.query<{ updateCard: Card }>(
-      `mutation UpdateCard($dashboardId: ID!, $columnId: ID!, $cardId: ID!, $input: UpdateCardInput!) {
-        updateCard(dashboardId: $dashboardId, columnId: $columnId, cardId: $cardId, input: $input) {
-          id
-          number
-          title
-          description
-          columnId
-          members {
-            id
-            email
-          }
-          labels {
-            id
-            text
-            color
-          }
-        }
-      }`,
-      { dashboardId, columnId, cardId, input: data }
-    );
-
-    return response.data ? { data: response.data.updateCard } : response;
-  }
-
-  async deleteCard(
-    dashboardId: string,
-    columnId: string,
-    cardId: string
-  ): Promise<ApiResponse<void>> {
-    return this.query<void>(
-      `mutation DeleteCard($dashboardId: ID!, $columnId: ID!, $cardId: ID!) {
-        deleteCard(dashboardId: $dashboardId, columnId: $columnId, cardId: $cardId)
-      }`,
-      { dashboardId, columnId, cardId }
-    );
-  }
-
-  async moveCard(
-    dashboardId: string,
-    fromColumnId: string,
-    toColumnId: string,
-    cardId: string,
-    newIndex: number
-  ): Promise<ApiResponse<void>> {
-    return this.query<void>(
-      `mutation MoveCard($input: MoveCardInput!) {
-        moveCard(input: $input)
-      }`,
-      {
-        input: {
-          dashboardId,
-          fromColumnId,
-          toColumnId,
-          cardId,
-          newIndex,
-        },
-      }
-    );
+    return {
+      data: (response.data as any).dashboards,
+      status: 200
+    };
   }
 }

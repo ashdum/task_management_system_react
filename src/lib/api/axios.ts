@@ -103,6 +103,7 @@ export class ApiClient {
       error: {
         message: safeError.message,
         code: safeError.code,
+        status: safeError.status,
       },
     };
   }

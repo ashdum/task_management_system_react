@@ -1,23 +1,23 @@
-import React, { useState } from 'react';
-import { Settings, LogOut, User, Key } from 'lucide-react';
+import React from 'react';
+import { LogOut, Settings, User as UserIcon } from 'lucide-react';
+import { User } from '../../types';
 import { useNavigate } from 'react-router-dom';
-import { User as UserType } from '../types';
-import { API } from '../lib/api';
+import { API } from '../../lib/api';
 
 interface HeaderProps {
-  user: UserType;
+  user: User;
   onSignOut: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [oldPassword, setOldPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [showUserMenu, setShowUserMenu] = React.useState(false);
+  const [showSettings, setShowSettings] = React.useState(false);
+  const [oldPassword, setOldPassword] = React.useState('');
+  const [newPassword, setNewPassword] = React.useState('');
+  const [confirmPassword, setConfirmPassword] = React.useState('');
+  const [error, setError] = React.useState<string | null>(null);
+  const [success, setSuccess] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
   const navigate = useNavigate();
 
   const handleSignOut = () => {
@@ -209,7 +209,7 @@ const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
                 disabled={loading}
                 className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Key size={16} />
+                <UserIcon size={16} />
                 {loading ? 'Changing Password...' : 'Change Password'}
               </button>
             </form>

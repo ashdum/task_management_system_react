@@ -1,7 +1,6 @@
 import { tokenManager } from './auth/tokens';
-import { authInterceptor } from './auth/interceptor';
 import { dataSource } from './data';
-import type { User } from '../types';
+import type { User, AuthResponse, ApiResponse } from '../types';
 import {
   AuthError,
   UserNotFoundError,
@@ -43,35 +42,31 @@ export const signUp = async (email: string, fullName: string, password: string):
       throw new ValidationError(passwordErrors[0]);
     }
 
-    // Check if user already exists in local storage
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    const response: ApiResponse<AuthResponse> = await dataSource.register(email, password);
     
-    // Check email
-    const existingEmail = users.find((u: User) => u.email.toLowerCase() === email.toLowerCase());
-    if (existingEmail) {
-      throw new UserExistsError('email');
+    if (response.error) {
+      if (response.error.code === 'USER_EXISTS') {
+        throw new UserExistsError('email');
+      }
+      throw new AuthError(response.error.message);
     }
 
-    // Create new user
-    const newUser: User = {
-      id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      email,
-      fullName,
-    };
+    if (!response.data) {
+      throw new AuthError('Failed to create user account');
+    }
 
-    // Save user to local storage
-    users.push(newUser);
-    localStorage.setItem('users', JSON.stringify(users));
+    // Store the auth tokens
+    const { token, refreshToken } = response.data;
+    tokenManager.setTokens(token, refreshToken || token);
 
-    // Set as current user
-    localStorage.setItem('mockUser', JSON.stringify(newUser));
-
-    return newUser;
+    // Return user data without tokens
+    const { token: _, refreshToken: __, ...userData } = response.data;
+    return userData;
   } catch (error) {
     if (error instanceof AuthError) {
       throw error;
     }
-    throw new AuthError('Failed to create account');
+    throw new AuthError('An unexpected error occurred during sign up');
   }
 };
 
@@ -89,45 +84,61 @@ export const signIn = async (email: string, password: string): Promise<User> => 
       throw new ValidationError(passwordErrors[0]);
     }
 
-    // Find user in local storage
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const user = users.find((u: User) => u.email.toLowerCase() === email.toLowerCase());
-    
-    if (!user) {
-      throw new UserNotFoundError();
+    const response: ApiResponse<AuthResponse> = await dataSource.login(email, password);
+
+    if (response.error) {
+      if (response.error.code === 'USER_NOT_FOUND') {
+        throw new UserNotFoundError();
+      }
+      if (response.error.code === 'INVALID_PASSWORD') {
+        throw new InvalidPasswordError();
+      }
+      throw new AuthError(response.error.message);
     }
 
-    // In a real application, we would verify the password here
-    // For the mock version, we'll simulate password verification
-    const isPasswordValid = passwordErrors.length === 0;
-    if (!isPasswordValid) {
-      throw new InvalidPasswordError();
+    if (!response.data) {
+      throw new AuthError('Failed to authenticate user');
     }
 
-    // Set as current user
-    localStorage.setItem('mockUser', JSON.stringify(user));
+    // Store the auth tokens
+    const { token, refreshToken } = response.data;
+    tokenManager.setTokens(token, refreshToken || token);
 
-    return user;
+    // Return user data without tokens
+    const { token: _, refreshToken: __, ...userData } = response.data;
+    return userData;
   } catch (error) {
     if (error instanceof AuthError) {
       throw error;
     }
-    throw new AuthError('Failed to sign in');
+    throw new AuthError('An unexpected error occurred during sign in');
   }
 };
 
-export const signOut = async () => {
+export const signOut = async (): Promise<void> => {
   try {
-    localStorage.removeItem('mockUser');
+    await dataSource.logout();
+    tokenManager.removeTokens();
   } catch (error) {
-    throw new AuthError('Failed to sign out');
+    console.error('Error during sign out:', error);
+    // Still remove the tokens even if the API call fails
+    tokenManager.removeTokens();
   }
 };
 
 export const getCurrentUser = (): User | null => {
+  const { accessToken } = tokenManager.getTokens();
+  if (!accessToken) {
+    return null;
+  }
+
   try {
-    const userJson = localStorage.getItem('mockUser');
-    return userJson ? JSON.parse(userJson) : null;
+    // Decode the token to get user info
+    const payload = tokenManager.decodeToken(accessToken);
+    if (!payload || !payload.user) {
+      return null;
+    }
+    return payload.user;
   } catch (error) {
     console.error('Error getting current user:', error);
     return null;
@@ -135,21 +146,15 @@ export const getCurrentUser = (): User | null => {
 };
 
 export const isUserAuthenticated = (): boolean => {
-  return !!getCurrentUser();
+  return tokenManager.isTokenValid();
 };
 
-export const getUserDashboards = () => {
-  try {
-    const currentUser = getCurrentUser();
-    if (!currentUser) return [];
-
-    const data = JSON.parse(localStorage.getItem('app_1.0_data') || '{"dashboards": []}');
-    return data.dashboards.filter((dashboard: any) => 
-      dashboard.ownerIds.includes(currentUser.id) ||
-      dashboard.members.some((member: any) => member.id === currentUser.id)
-    );
-  } catch (error) {
-    console.error('Error getting user dashboards:', error);
-    return [];
+export const getUserDashboards = async () => {
+  const response = await dataSource.getDashboards();
+  
+  if (response.error) {
+    throw new AuthorizationError('Failed to fetch user dashboards');
   }
+
+  return response.data || [];
 };

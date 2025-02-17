@@ -1,6 +1,7 @@
-import React from 'react';
-import { X } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Search, Plus, Tag } from 'lucide-react';
 import { Label } from '../../types';
+import { FormField } from '../common/FormField';
 
 interface LabelsModalProps {
   isOpen: boolean;

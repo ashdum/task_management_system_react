@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
-import { MoreVertical, Plus, Archive, Trash2 } from 'lucide-react';
-import { Column as ColumnType } from '../types';
+import { MoreHorizontal, Plus, Trash2 } from 'lucide-react';
+import { Column as ColumnType } from '../../types';
 import Card from './Card';
-import { useBoardStore } from '../store';
-import NewCardModal from './NewCardModal';
+import NewCardModal from '../modals/NewCardModal';
+import { useBoardStore } from '../../store';
 
 interface Props {
   column: ColumnType;
@@ -71,7 +71,7 @@ const Column: React.FC<Props> = ({ column, index, searchQuery }) => {
                 onClick={() => setShowMenu(!showMenu)}
                 className="p-1 hover:bg-gray-200 rounded-lg transition-colors"
               >
-                <MoreVertical size={16} />
+                <MoreHorizontal size={16} />
               </button>
               
               {showMenu && (

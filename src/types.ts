@@ -1,9 +1,17 @@
+// Auth related types
+export interface AuthResponse extends User {
+  token: string;
+  refreshToken?: string;
+}
+
 // User related types
 export interface User {
   id: string;
   email: string;
   fullName?: string;
   avatar?: string;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface DashboardInvitation {
@@ -126,12 +134,17 @@ export interface StatFilter {
 }
 
 // API related types
-export interface ApiResponse<T = any> {
+export interface ApiError {
+  message: string;
+  code: string;
+  status: number;
+}
+
+export interface ApiResponse<T> {
   data?: T;
-  error?: {
-    message: string;
-    code: string;
-  };
+  error?: ApiError;
+  status?: number;
+  message?: string;
 }
 
 export interface PaginatedResponse<T> {

@@ -288,12 +288,17 @@ export class GraphQLAPI {
         throw error;
       }
 
-      return { data: response.data.data };
+      if (response.data) {
+        return { data: response.data.data };
+      } else {
+        throw new Error('No data received from GraphQL API');
+      }
     } catch (error) {
       // Create a safe error object
       const safeError = {
         message: error instanceof Error ? error.message : 'Unknown error occurred',
         code: 'GRAPHQL_ERROR',
+        status: 500, // or any appropriate status code
       };
       
       console.error('GraphQL Execution Error:', JSON.stringify(safeError, null, 2));

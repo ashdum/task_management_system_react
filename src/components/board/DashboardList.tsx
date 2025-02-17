@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Layout, Users, Shield, Star, Clock, Search, Grid, List, BarChart3 } from 'lucide-react';
-import { useBoardStore } from '../store';
-import { getCurrentUser } from '../lib/auth';
-import { Dashboard } from '../types';
-import DashboardStats from './statistics/DashboardStats';
+import { Plus, Layout, Users, Shield, Clock, Search, Grid, List, BarChart3 } from 'lucide-react';
+import { useBoardStore } from '../../store';
+import { getCurrentUser } from '../../lib/auth';
+import { Dashboard } from '../../types';
+import DashboardStats from '../statistics/DashboardStats';
 
 // Default gradient for dashboard background when none is set
 const DEFAULT_GRADIENT = 'linear-gradient(to bottom right, #3B82F6, #8B5CF6)';
@@ -48,7 +48,7 @@ interface Props {
 const DashboardList: React.FC<Props> = ({ onDashboardSelect }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [sortBy, setSortBy] = useState<'name' | 'recent' | 'starred'>('recent');
+  const [sortBy, setSortBy] = useState<'name' | 'recent'>('recent');
   const [showStats, setShowStats] = useState<string | null>(null);
   const { dashboards, addDashboard, loadDashboards } = useBoardStore();
   const currentUser = getCurrentUser();
@@ -312,12 +312,11 @@ const DashboardList: React.FC<Props> = ({ onDashboardSelect }) => {
 
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as 'name' | 'recent' | 'starred')}
+              onChange={(e) => setSortBy(e.target.value as 'name' | 'recent')}
               className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="recent">Recently Created</option>
               <option value="name">Name</option>
-              <option value="starred">Starred</option>
             </select>
           </div>
         </div>

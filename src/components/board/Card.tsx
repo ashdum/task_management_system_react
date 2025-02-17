@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Draggable } from '@hello-pangea/dnd';
-import { Image as ImageIcon, Users } from 'lucide-react';
-import { Card as CardType } from '../types';
-import CardModal from './CardModal';
+import { Image as ImageIcon } from 'lucide-react';
+import { Card as CardType } from '../../types';
+import CardModal from '../modals/CardModal';
 
 interface Props {
   card: CardType;
