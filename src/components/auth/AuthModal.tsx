@@ -1,20 +1,25 @@
+// src/components/auth/AuthModal.tsx
+// Auth modal component using centralized authService
+// Updated onSuccess to accept a User object instead of email string
+
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Mail, User, Eye, EyeOff, Github, Chrome } from 'lucide-react';
-import { signIn, signUp } from '../../lib/auth';
+import { X, Mail, User as UserIcon, Eye, EyeOff, Github, Chrome } from 'lucide-react';
+import FormField from '../common/FormField';
 import { 
-  UserNotFoundError, 
+  AuthError, 
   InvalidPasswordError, 
   UserExistsError, 
-  AuthError,
+  UserNotFoundError, 
   ValidationError 
-} from '../../lib/auth/errors';
-import { FormField } from '../common/FormField';
+} from '../../lib/authErrors';
+import AuthService from '../../services/auth/authService';
+import type { User } from '../../types';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   type: 'login' | 'register';
-  onSuccess: (email: string) => void;
+  onSuccess: (user: User) => void; // Changed parameter type to User
 }
 
 const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, type, onSuccess }) => {
@@ -62,24 +67,30 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, type, onSuccess 
     setError(null);
 
     try {
+      let user: User;
       if (type === 'register') {
         if (password !== confirmPassword) {
           throw new ValidationError('Passwords do not match');
         }
-        const user = await signUp(email, fullName, password);
-        onSuccess(user.email);
+        user = await AuthService.signUp(email, fullName, password);
       } else {
-        const user = await signIn(email, password);
-        onSuccess(user.email);
+        user = await AuthService.signIn(email, password);
       }
+      onSuccess(user); // Pass the full user object
       onClose();
     } catch (err) {
-      if (err instanceof UserNotFoundError || 
-          err instanceof InvalidPasswordError || 
-          err instanceof UserExistsError ||
-          err instanceof ValidationError ||
-          err instanceof AuthError) {
-        setError(err.message);
+      if (
+        err instanceof UserNotFoundError ||
+        err instanceof InvalidPasswordError ||
+        err instanceof UserExistsError ||
+        err instanceof ValidationError ||
+        err instanceof AuthError
+      ) {
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError('An unexpected error occurred');
+        }
       } else if (err instanceof Error) {
         setError(err.message);
       } else {
@@ -107,7 +118,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, type, onSuccess 
       }
 
       const data = await response.json();
-      onSuccess(data.email);
+      // Assuming OAuth returns a complete User object
+      onSuccess(data as User);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to authenticate with Google');
@@ -133,7 +145,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, type, onSuccess 
       }
 
       const data = await response.json();
-      onSuccess(data.email);
+      onSuccess(data as User);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to authenticate with GitHub');
@@ -168,9 +180,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, type, onSuccess 
   );
 
   const handleFullNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Only allow letters, spaces, hyphens, and apostrophes
+    // Only allow letters, spaces, hyphens, and apostrophes; capitalize each word
     const value = e.target.value.replace(/[^a-zA-Z\s'-]/g, '');
-    // Capitalize each word
     const formattedValue = value
       .split(' ')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
@@ -197,7 +208,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, type, onSuccess 
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
-          tabIndex={-1} // Remove from tab order
+          tabIndex={-1}
         >
           <X size={24} />
           <span className="sr-only">Close</span>
@@ -245,7 +256,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, type, onSuccess 
             >
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500">
-                  <User size={20} />
+                  <UserIcon size={20} />
                 </div>
                 <input
                   ref={fullNameInputRef}
@@ -283,7 +294,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, type, onSuccess 
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                tabIndex={-1} // Remove from tab order
+                tabIndex={-1}
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 <span className="sr-only">
@@ -314,7 +325,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, type, onSuccess 
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                  tabIndex={-1} // Remove from tab order
+                  tabIndex={-1}
                 >
                   {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   <span className="sr-only">

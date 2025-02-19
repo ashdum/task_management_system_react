@@ -1,8 +1,5 @@
 // Auth related types
-export interface AuthResponse extends User {
-  token: string;
-  refreshToken?: string;
-}
+
 
 // User related types
 export interface User {
@@ -10,7 +7,7 @@ export interface User {
   email: string;
   fullName?: string;
   avatar?: string;
-  createdAt: string;
+  createdAt?: string;
   updatedAt?: string;
 }
 
@@ -147,9 +144,15 @@ export interface ApiResponse<T> {
   message?: string;
 }
 
+export interface AuthResponse extends User {
+  token: string;
+  refreshToken?: string;
+}
+
 export interface PaginatedResponse<T> {
   data: T[];
   total: number;
   page: number;
   limit: number;
 }
+

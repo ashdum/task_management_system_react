@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
-import { useBoardStore } from '../../store';
-import { FormField } from '../common/FormField';
 
 interface NewColumnModalProps {
   isOpen: boolean;
@@ -43,7 +41,7 @@ const NewColumnModal: React.FC<NewColumnModalProps> = ({ isOpen, onClose, onAdd 
         </div>
 
         <form onSubmit={handleSubmit}>
-          <FormField
+          <input
             ref={inputRef}
             type="text"
             value={title}

@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-import { X, CheckSquare, Plus } from 'lucide-react';
-import { Checklist } from '../../types';
-import { FormField } from '../common/FormField';
+import { X} from 'lucide-react';
 
 interface ChecklistModalProps {
   isOpen: boolean;

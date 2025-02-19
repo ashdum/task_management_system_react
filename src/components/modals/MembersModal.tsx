@@ -1,7 +1,5 @@
-import React, { useState } from 'react';
-import { X, Search, Users } from 'lucide-react';
-import { User } from '../../types';
-import { FormField } from '../common/FormField';
+import React from 'react';
+import { X } from 'lucide-react';
 
 interface MembersModalProps {
   isOpen: boolean;

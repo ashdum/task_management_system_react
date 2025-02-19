@@ -1,7 +1,7 @@
 import { create } from 'zustand';
-import { API } from './lib/api';
+import { dataSource } from './services/data/dataSource'; // use dataSource facade
 import { Column, Card, Dashboard } from './types';
-import { getCurrentUser } from './lib/auth';
+import authService from './services/auth/authService';
 
 interface BoardState {
   dashboards: Dashboard[];
@@ -36,8 +36,9 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   loadDashboards: async () => {
     try {
       set({ loading: true, error: null });
-      const dashboards = await API.getDashboards();
-      set({ dashboards, loading: false });
+      const response = await dataSource.getDashboards();
+      if (response.error) throw new Error(response.error.message);
+      set({ dashboards: response.data ?? [], loading: false });
     } catch (error) {
       set({ error: (error as Error).message, loading: false });
     }
@@ -46,13 +47,14 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   addDashboard: async (title: string) => {
     try {
       set({ loading: true, error: null });
-      const currentUser = getCurrentUser();
+      const currentUser = authService.getCurrentUser();
       if (!currentUser) {
         throw new Error('User not authenticated');
       }
-      const dashboard = await API.createDashboard(title, currentUser.id);
+      const response = await dataSource.createDashboard(title, currentUser.id);
+      if (response.error) throw new Error(response.error.message);
       set(state => ({
-        dashboards: [...state.dashboards, dashboard],
+        dashboards: [...state.dashboards, response.data!],
         loading: false,
       }));
     } catch (error) {
@@ -63,12 +65,13 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   setCurrentDashboard: async (dashboardId: string) => {
     try {
       set({ loading: true, error: null });
-      const dashboards = await API.getDashboards();
+      const response = await dataSource.getDashboards();
+      if (response.error) throw new Error(response.error.message);
+      const dashboards = response.data ?? [];
       const currentDashboard = dashboards.find(d => d.id === dashboardId);
       if (!currentDashboard) {
         throw new Error('Dashboard not found');
       }
-
       set({
         currentDashboard,
         columns: currentDashboard.columns,
@@ -82,11 +85,12 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   updateDashboard: async (dashboardId: string, updates: Partial<Dashboard>) => {
     try {
       set({ loading: true, error: null });
-      const updatedDashboard = await API.updateDashboard(dashboardId, updates);
+      const response = await dataSource.updateDashboard(dashboardId, updates);
+      if (response.error) throw new Error(response.error.message);
       set(state => ({
-        currentDashboard: updatedDashboard,
+        currentDashboard: response.data,
         dashboards: state.dashboards.map(d =>
-          d.id === dashboardId ? updatedDashboard : d
+          d.id === dashboardId ? response.data! : d
         ),
         loading: false,
       }));
@@ -98,12 +102,12 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   addColumn: async (title: string) => {
     const { currentDashboard } = get();
     if (!currentDashboard) return;
-
     try {
       set({ loading: true, error: null });
-      const column = await API.createColumn(currentDashboard.id, title);
+      const response = await dataSource.createColumn(currentDashboard.id, title);
+      if (response.error) throw new Error(response.error.message);
       set(state => ({
-        columns: [...state.columns, column],
+        columns: [...state.columns, response.data!],
         loading: false,
       }));
     } catch (error) {
@@ -125,21 +129,21 @@ export const useBoardStore = create<BoardState>((set, get) => ({
 
   updateColumn: (column: Column) => {
     set(state => ({
-      columns: state.columns.map(c => c.id === column.id ? column : c),
+      columns: state.columns.map(c => (c.id === column.id ? column : c)),
     }));
   },
 
   addCard: async (columnId: string, title: string) => {
     const { currentDashboard } = get();
     if (!currentDashboard) return;
-
     try {
       set({ loading: true, error: null });
-      const card = await API.createCard(currentDashboard.id, columnId, title);
+      const response = await dataSource.createCard(currentDashboard.id, columnId, title);
+      if (response.error) throw new Error(response.error.message);
       set(state => ({
         columns: state.columns.map(column =>
           column.id === columnId
-            ? { ...column, cards: [...column.cards, card] }
+            ? { ...column, cards: [...column.cards, response.data!] }
             : column
         ),
         loading: false,
@@ -152,16 +156,16 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   updateCard: async (columnId: string, cardId: string, updatedCard: Partial<Card>) => {
     const { currentDashboard } = get();
     if (!currentDashboard) return;
-
     try {
       set({ loading: true, error: null });
-      const card = await API.updateCard(currentDashboard.id, columnId, cardId, updatedCard);
+      const response = await dataSource.updateCard(currentDashboard.id, columnId, cardId, updatedCard);
+      if (response.error) throw new Error(response.error.message);
       set(state => ({
         columns: state.columns.map(column =>
           column.id === columnId
             ? {
                 ...column,
-                cards: column.cards.map(c => (c.id === cardId ? card : c)),
+                cards: column.cards.map(c => (c.id === cardId ? response.data! : c)),
               }
             : column
         ),
@@ -175,38 +179,31 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   moveCard: async (fromColumnId: string, toColumnId: string, fromIndex: number, toIndex: number) => {
     const { currentDashboard, columns } = get();
     if (!currentDashboard) return;
-
     const sourceColumn = columns.find(col => col.id === fromColumnId);
     if (!sourceColumn) return;
-
     const card = sourceColumn.cards[fromIndex];
     if (!card) return;
-
     // Update state immediately for smooth UI
     set(state => {
       const newColumns = state.columns.map(col => ({ ...col, cards: [...col.cards] }));
       const fromColumn = newColumns.find(col => col.id === fromColumnId);
       const toColumn = newColumns.find(col => col.id === toColumnId);
-
       if (!fromColumn || !toColumn) return state;
-
       const [movedCard] = fromColumn.cards.splice(fromIndex, 1);
       toColumn.cards.splice(toIndex, 0, movedCard);
-
       return { columns: newColumns };
     });
-
     try {
-      await API.moveCard(currentDashboard.id, fromColumnId, toColumnId, card.id, toIndex);
+      const response = await dataSource.moveCard(currentDashboard.id, fromColumnId, toColumnId, card.id, toIndex);
+      if (response.error) throw new Error(response.error.message);
     } catch (error) {
-      // Revert the state if the API call fails
-      set(state => ({ columns, error: (error as Error).message }));
+      // Revert state if API call fails
+      set({ columns, error: (error as Error).message });
     }
   },
 
   updateColumnOrder: async (dashboardId: string, columnIds: string[]) => {
     const { columns: originalColumns } = get();
-
     // Update state immediately for smooth UI
     set(state => {
       const newColumns = columnIds.map((columnId, index) => {
@@ -214,14 +211,13 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         if (!column) throw new Error('Column not found');
         return { ...column, order: index + 1 };
       });
-
       return { columns: newColumns };
     });
-
     try {
-      await API.updateColumnOrder(dashboardId, columnIds);
+      const response = await dataSource.updateColumnOrder(dashboardId, columnIds);
+      if (response.error) throw new Error(response.error.message);
     } catch (error) {
-      // Revert the state if the API call fails
+      // Revert state on error
       set({ columns: originalColumns, error: (error as Error).message });
     }
   },
@@ -229,9 +225,8 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   inviteToDashboard: async (dashboardId: string, email: string) => {
     try {
       set({ loading: true, error: null });
-      const response = await API.inviteToDashboard(dashboardId, email);
-      if (response.error) throw response.error;
-
+      const response = await dataSource.inviteToDashboard(dashboardId, email);
+      if (response.error) throw new Error(response.error.message);
       set(state => ({
         currentDashboard: state.currentDashboard
           ? {
@@ -250,13 +245,11 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   acceptInvitation: async (invitationId: string) => {
     try {
       set({ loading: true, error: null });
-      const response = await API.acceptInvitation(invitationId);
-      if (response.error) throw response.error;
-
-      // Refresh dashboards list to include the newly accepted dashboard
-      const dashboardsResponse = await API.getDashboards();
-      if (dashboardsResponse.error) throw dashboardsResponse.error;
-
+      const response = await dataSource.acceptInvitation(invitationId);
+      if (response.error) throw new Error(response.error.message);
+      // Refresh dashboards list after accepting invitation
+      const dashboardsResponse = await dataSource.getDashboards();
+      if (dashboardsResponse.error) throw new Error(dashboardsResponse.error.message);
       set({
         dashboards: dashboardsResponse.data!,
         loading: false,
@@ -270,9 +263,8 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   rejectInvitation: async (invitationId: string) => {
     try {
       set({ loading: true, error: null });
-      const response = await API.rejectInvitation(invitationId);
-      if (response.error) throw response.error;
-
+      const response = await dataSource.rejectInvitation(invitationId);
+      if (response.error) throw new Error(response.error.message);
       set(state => ({
         currentDashboard: state.currentDashboard
           ? {

@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { Paperclip, Link } from 'lucide-react';
+import React from 'react';
+import { Paperclip } from 'lucide-react';
 
 interface AttachmentButtonProps {
   onFileSelect: (files: FileList) => void;
@@ -8,16 +8,9 @@ interface AttachmentButtonProps {
 
 const AttachmentButton: React.FC<AttachmentButtonProps> = ({
   onFileSelect,
-  onLinkAdd,
 }) => {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const handleAddLink = () => {
-    const url = window.prompt('Enter URL');
-    if (url) {
-      onLinkAdd(url);
-    }
-  };
 
   return (
     <div className="relative">

@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import LandingPage from './pages/LandingPage';
 import Dashboard from './components/board/Dashboard';
 import { User } from './types';
-import { getCurrentUser, signOut } from './lib/auth';
 
 function App() {
   const [user, setUser] = useState<User | null>(null);

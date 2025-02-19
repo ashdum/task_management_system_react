@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { DragDropContext, Droppable, DropResult } from '@hello-pangea/dnd';
 import { Plus, ArrowLeft, Search, BarChart3 } from 'lucide-react';
-import { useBoardStore } from '../../store';
+import { useBoardStore } from '../../store.ts';
 import Column from './Column';
 import DashboardList from './DashboardList';
 import Footer from '../layout/Footer';

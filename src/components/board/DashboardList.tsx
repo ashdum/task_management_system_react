@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Layout, Users, Shield, Clock, Search, Grid, List, BarChart3 } from 'lucide-react';
-import { useBoardStore } from '../../store';
-import { getCurrentUser } from '../../lib/auth';
+import { useBoardStore } from '../../store.ts';
 import { Dashboard } from '../../types';
 import DashboardStats from '../statistics/DashboardStats';
+import authService from '../../services/auth/authService';
 
 // Default gradient for dashboard background when none is set
 const DEFAULT_GRADIENT = 'linear-gradient(to bottom right, #3B82F6, #8B5CF6)';
@@ -51,7 +51,7 @@ const DashboardList: React.FC<Props> = ({ onDashboardSelect }) => {
   const [sortBy, setSortBy] = useState<'name' | 'recent'>('recent');
   const [showStats, setShowStats] = useState<string | null>(null);
   const { dashboards, addDashboard, loadDashboards } = useBoardStore();
-  const currentUser = getCurrentUser();
+  const currentUser = authService.getCurrentUser();
 
   useEffect(() => {
     loadDashboards();

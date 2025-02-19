@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
-import { useBoardStore } from '../../store';
-import { FormField } from '../common/FormField';
 
 interface NewCardModalProps {
   isOpen: boolean;

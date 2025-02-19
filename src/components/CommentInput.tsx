@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send } from 'lucide-react';
-import { RichTextEditor } from './RichTextEditor';
 
 interface CommentInputProps {
   onSubmit: (text: string) => void;

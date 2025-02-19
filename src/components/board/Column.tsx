@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
-import { MoreHorizontal, Plus, Trash2 } from 'lucide-react';
+import { Archive, MoreHorizontal, Plus, Trash2 } from 'lucide-react';
 import { Column as ColumnType } from '../../types';
 import Card from './Card';
 import NewCardModal from '../modals/NewCardModal';
-import { useBoardStore } from '../../store';
+import { useBoardStore } from '../../store.ts';
 
 interface Props {
   column: ColumnType;

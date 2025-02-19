@@ -2,7 +2,7 @@ import React from 'react';
 import { LogOut, Settings, User as UserIcon } from 'lucide-react';
 import { User } from '../../types';
 import { useNavigate } from 'react-router-dom';
-import { API } from '../../lib/api';
+import authService from '../../services/auth/authService';
 
 interface HeaderProps {
   user: User;
@@ -21,10 +21,7 @@ const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
   const navigate = useNavigate();
 
   const handleSignOut = () => {
-    /* Real Supabase implementation:
-    await supabase.auth.signOut();
-    */
-    localStorage.removeItem('mockUser');
+    authService.signOut();
     onSignOut();
     navigate('/');
   };
@@ -52,7 +49,7 @@ const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
 
     try {
       setLoading(true);
-      await API.changePassword(user.id, oldPassword, newPassword);
+      await authService.changePassword(user.id, oldPassword, newPassword);
       setSuccess(true);
       setOldPassword('');
       setNewPassword('');
