@@ -47,7 +47,7 @@ export class LocalDataSource implements DataSource {
     const accessToken = this.generateToken(user, 3600);
     const refreshToken = this.generateToken(user, 604800);
 
-    const authResponse: AuthResponse = { ...user, token: accessToken, refreshToken };
+    const authResponse: AuthResponse = { ...user, accessToken: accessToken, refreshToken };
     return { data: authResponse, status: 201 };
   }
 
@@ -80,7 +80,7 @@ export class LocalDataSource implements DataSource {
     const accessToken = this.generateToken(newUser, 3600);
     const refreshToken = this.generateToken(newUser, 604800);
 
-    const authResponse: AuthResponse = { ...newUser, token: accessToken, refreshToken };
+    const authResponse: AuthResponse = { ...newUser, accessToken: accessToken, refreshToken };
     return { data: authResponse, status: 201 };
   }
 

@@ -33,17 +33,17 @@ class AuthInterceptor {
     if (!refreshToken) return null;
 
     try {
-      const response = await fetch(config.getAuthConfig().refreshUrl, {
+      const response = await fetch(`${config.getApiConfig().baseUrl}/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refreshToken }),
       });
-      if (!response.ok) throw new Error('Failed to refresh token');
+      if (!response.ok) throw new Error('Не удалось обновить токен');
       const data = await response.json();
       tokenManager.setTokens(data.accessToken, data.refreshToken);
       return data.accessToken;
     } catch (error) {
-      console.error('Error refreshing token:', error);
+      console.error('Ошибка обновления токена:', error);
       tokenManager.removeTokens();
       return null;
     }
@@ -66,7 +66,7 @@ class AuthInterceptor {
       try {
         const newToken = await this.refreshToken();
         this.isRefreshing = false;
-        if (!newToken) throw new Error('Failed to refresh token');
+        if (!newToken) throw new Error('Не удалось обновить токен');
         this.onRefreshed(newToken);
         const newHeaders = new Headers(request.headers);
         newHeaders.set('Authorization', `Bearer ${newToken}`);
@@ -85,20 +85,20 @@ class AuthInterceptor {
     if (response.status === 401) {
       const newToken = await this.refreshToken();
       if (!newToken) {
-        return { error: { message: 'Authentication failed', code: 'AUTH_ERROR', status: 401 } };
+        return { error: { message: 'Ошибка аутентификации', code: 'AUTH_ERROR', status: 401 } };
       }
       const newResponse = await fetch(response.url, {
         ...response,
         headers: { ...response.headers, Authorization: `Bearer ${newToken}` },
       });
       if (!newResponse.ok) {
-        return { error: { message: 'Request failed after token refresh', code: 'API_ERROR', status: 401 } };
+        return { error: { message: 'Запрос не удался после обновления токена', code: 'API_ERROR', status: 401 } };
       }
       const data = await newResponse.json();
       return { data };
     }
     if (!response.ok) {
-      return { error: { message: 'Request failed', code: 'API_ERROR', status: response.status } };
+      return { error: { message: 'Запрос не удался', code: 'API_ERROR', status: response.status } };
     }
     const data = await response.json();
     return { data };
