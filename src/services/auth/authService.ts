@@ -7,7 +7,6 @@ import {
   AuthError,
   UserNotFoundError,
   InvalidPasswordError,
-  UserExistsError,
   ValidationError,
   AuthorizationError,
 } from '../../lib/authErrors';
@@ -16,7 +15,6 @@ import { dataSource } from '../data/dataSource';
 
 class AuthService {
   async signUp(email: string, fullName: string, password: string): Promise<User> {
-    // Validate input
     const emailErrors = validateEmail(email);
     if (emailErrors.length > 0) {
       throw new ValidationError(emailErrors[0]);
@@ -30,21 +28,25 @@ class AuthService {
       throw new ValidationError(passwordErrors[0]);
     }
 
+    // Используем тип AuthResponse из types.ts
     const response: ApiResponse<AuthResponse> = await dataSource.register(email, password, fullName);
     if (response.error) {
-      if (response.error.code === 'USER_EXISTS') {
-        throw new UserExistsError('email');
+      if (response.error.status === 401) {
+        throw new AuthError('Пользователь с таким email уже существует');
       }
-      throw new AuthError(response.error.message);
+      throw new AuthError(response.error.message || 'Не удалось зарегистрировать пользователя');
     }
     if (!response.data) {
-      throw new AuthError('Failed to create user account');
+      throw new AuthError('Не удалось создать пользователя');
     }
-    // Store tokens
-    tokenManager.setTokens(response.data.token, response.data.refreshToken || response.data.token);
-    // Remove tokens from returned user data using rest operator
-    const {...userData } = response.data;
-    return userData;
+
+    // Store tokens and extract user from accessToken
+    tokenManager.setTokens(response.data.accessToken, response.data.refreshToken);
+    const decoded = tokenManager.decodeToken(response.data.accessToken);
+    if (!decoded || !decoded.user) {
+      throw new AuthError('Некорректный токен после регистрации');
+    }
+    return decoded.user;
   }
 
   async signIn(email: string, password: string): Promise<User> {
@@ -59,30 +61,30 @@ class AuthService {
 
     const response: ApiResponse<AuthResponse> = await dataSource.login(email, password);
     if (response.error) {
-      if (response.error.code === 'USER_NOT_FOUND') {
-        throw new UserNotFoundError();
+      if (response.error.status === 401) {
+        throw new UserNotFoundError(); // Или InvalidPasswordError в зависимости от текста ошибки
       }
-      if (response.error.code === 'INVALID_PASSWORD') {
-        throw new InvalidPasswordError();
-      }
-      throw new AuthError(response.error.message);
+      throw new AuthError(response.error.message || 'Не удалось войти');
     }
     if (!response.data) {
-      throw new AuthError('Failed to authenticate user');
+      throw new AuthError('Не удалось аутентифицировать пользователя');
     }
-    tokenManager.setTokens(response.data.token, response.data.refreshToken || response.data.token);
-    const {...userData } = response.data;
-    return userData;
+
+    tokenManager.setTokens(response.data.accessToken, response.data.refreshToken);
+    const decoded = tokenManager.decodeToken(response.data.accessToken);
+    if (!decoded || !decoded.user) {
+      throw new AuthError('Некорректный токен после входа');
+    }
+    return decoded.user;
   }
 
   async signOut(): Promise<void> {
     try {
       await dataSource.logout();
-      tokenManager.removeTokens();
     } catch (error) {
-      console.error('Error during sign out:', error);
-      tokenManager.removeTokens();
+      console.error('Ошибка при выходе:', error);
     }
+    tokenManager.removeTokens();
   }
 
   async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<void> {
@@ -93,10 +95,10 @@ class AuthService {
 
     const response = await dataSource.changePassword(userId, oldPassword, newPassword);
     if (response.error) {
-      if (response.error.code === 'INVALID_PASSWORD') {
+      if (response.error.status === 401) {
         throw new InvalidPasswordError();
       }
-      throw new AuthError(response.error.message);
+      throw new AuthError(response.error.message || 'Не удалось сменить пароль');
     }
   }
 
@@ -105,10 +107,9 @@ class AuthService {
     if (!accessToken) return null;
     try {
       const payload = tokenManager.decodeToken(accessToken);
-      if (!payload || !payload.user) return null;
-      return payload.user;
+      return payload.user || null;
     } catch (error) {
-      console.error('Error getting current user:', error);
+      console.error('Ошибка получения текущего пользователя:', error);
       return null;
     }
   }
@@ -120,7 +121,7 @@ class AuthService {
   async getUserDashboards(): Promise<Dashboard[]> {
     const response = await dataSource.getDashboards();
     if (response.error) {
-      throw new AuthorizationError('Failed to fetch user dashboards');
+      throw new AuthorizationError('Не удалось получить дашборды пользователя');
     }
     return response.data || [];
   }

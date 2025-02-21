@@ -1,11 +1,11 @@
 // src/services/auth/tokenManager.ts
-// Token manager: stores tokens in cookies and decodes/validates JWT
+// Token manager: stores tokens in localStorage and decodes/validates JWT
 
 import { z } from 'zod';
 import { config } from '../../config';
 import { jwtDecode } from 'jwt-decode';
 
-// Schemas for token payloads
+// Schema for access token payload matching backend
 const tokenPayloadSchema = z.object({
   sub: z.string(),
   email: z.string().email(),
@@ -20,15 +20,7 @@ const tokenPayloadSchema = z.object({
   }),
 });
 
-const refreshTokenPayloadSchema = z.object({
-  sub: z.string(),
-  jti: z.string(),
-  exp: z.number(),
-  iat: z.number(),
-});
-
 export type TokenPayload = z.infer<typeof tokenPayloadSchema>;
-export type RefreshTokenPayload = z.infer<typeof refreshTokenPayloadSchema>;
 
 class TokenManager {
   private static instance: TokenManager;
@@ -42,52 +34,24 @@ class TokenManager {
     return TokenManager.instance;
   }
 
-  // Save tokens into cookies
+  // Save tokens into localStorage
   public setTokens(accessToken: string, refreshToken: string): void {
-    document.cookie = `${config.getAuthConfig().tokenKey}=${accessToken}; path=/; secure; samesite=strict; max-age=3600`;
-    document.cookie = `${config.getAuthConfig().refreshTokenKey}=${refreshToken}; path=/; secure; samesite=strict; max-age=604800`;
+    localStorage.setItem(config.getAuthConfig().tokenKey, accessToken);
+    localStorage.setItem(config.getAuthConfig().refreshTokenKey, refreshToken);
   }
 
-  // Get tokens from cookies
+  // Get tokens from localStorage
   public getTokens(): { accessToken: string | null; refreshToken: string | null } {
-    const cookies = document.cookie.split(';').reduce((acc, cookie) => {
-      const [key, value] = cookie.trim().split('=');
-      acc[key] = value;
-      return acc;
-    }, {} as Record<string, string>);
-
     return {
-      accessToken: cookies[config.getAuthConfig().tokenKey] || null,
-      refreshToken: cookies[config.getAuthConfig().refreshTokenKey] || null,
+      accessToken: localStorage.getItem(config.getAuthConfig().tokenKey),
+      refreshToken: localStorage.getItem(config.getAuthConfig().refreshTokenKey),
     };
   }
 
-  // Remove tokens from cookies
+  // Remove tokens from localStorage
   public removeTokens(): void {
-    document.cookie = `${config.getAuthConfig().tokenKey}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-    document.cookie = `${config.getAuthConfig().refreshTokenKey}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-  }
-
-  public parseToken(token: string): TokenPayload | null {
-    try {
-      const [, payload] = token.split('.');
-      const decodedPayload = JSON.parse(atob(payload));
-      return tokenPayloadSchema.parse(decodedPayload);
-    } catch (error) {
-      console.error('Error parsing token:', error);
-      return null;
-    }
-  }
-
-  public parseRefreshToken(token: string): RefreshTokenPayload | null {
-    try {
-      const [, payload] = token.split('.');
-      const decodedPayload = JSON.parse(atob(payload));
-      return refreshTokenPayloadSchema.parse(decodedPayload);
-    } catch (error) {
-      console.error('Error parsing refresh token:', error);
-      return null;
-    }
+    localStorage.removeItem(config.getAuthConfig().tokenKey);
+    localStorage.removeItem(config.getAuthConfig().refreshTokenKey);
   }
 
   public decodeToken(token: string): TokenPayload {
@@ -95,23 +59,16 @@ class TokenManager {
       const decoded = jwtDecode(token);
       const result = tokenPayloadSchema.safeParse(decoded);
       if (!result.success) {
-        throw new Error('Invalid token payload');
+        throw new Error('Неверный формат токена');
       }
       return result.data;
     } catch (error) {
-      throw new Error('Failed to decode token');
+      throw new Error('Не удалось декодировать токен');
     }
   }
 
   public isTokenExpired(token: string): boolean {
-    const payload = this.parseToken(token);
-    if (!payload) return true;
-    return Date.now() >= payload.exp * 1000;
-  }
-
-  public isRefreshTokenExpired(token: string): boolean {
-    const payload = this.parseRefreshToken(token);
-    if (!payload) return true;
+    const payload = this.decodeToken(token);
     return Date.now() >= payload.exp * 1000;
   }
 

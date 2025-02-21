@@ -4,8 +4,8 @@
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import { ApiResponse } from '../../types';
 import { config } from '../../config';
+import { tokenManager } from '../auth/tokenManager';
 
-// Define an interface for error response data
 interface ErrorResponse {
   message?: string;
   code?: string;
@@ -14,14 +14,13 @@ interface ErrorResponse {
 class ApiClient {
   private static instance: ApiClient;
   private axiosInstance: AxiosInstance;
-  private authToken: string | null = null;
 
   private constructor() {
     const apiConfig = config.getApiConfig();
 
     this.axiosInstance = axios.create({
       baseURL: apiConfig.baseUrl,
-      timeout: apiConfig.timeout, // Assuming timeout is defined in config
+      timeout: apiConfig.timeout,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -30,8 +29,9 @@ class ApiClient {
     // Request interceptor to attach Authorization header if token exists
     this.axiosInstance.interceptors.request.use(
       (requestConfig: InternalAxiosRequestConfig) => {
-        if (this.authToken) {
-          requestConfig.headers.Authorization = `Bearer ${this.authToken}`;
+        const accessToken = tokenManager.getTokens().accessToken;
+        if (accessToken) {
+          requestConfig.headers.Authorization = `Bearer ${accessToken}`;
         }
         return requestConfig;
       },
@@ -52,7 +52,6 @@ class ApiClient {
     return ApiClient.instance;
   }
 
-  // GET request method with parameters of type Record<string, unknown>
   async get<T>(endpoint: string, params?: Record<string, unknown>): Promise<ApiResponse<T>> {
     try {
       const response = await this.axiosInstance.get<T>(endpoint, { params });
@@ -62,17 +61,15 @@ class ApiClient {
     }
   }
 
-  // POST request method with data type unknown
   async post<T>(endpoint: string, data: unknown): Promise<ApiResponse<T>> {
     try {
       const response = await this.axiosInstance.post<T>(endpoint, data);
       return { data: response.data, status: response.status };
-    } catch (error) {
+    } catch (error) {8
       return this.handleError(error as AxiosError);
     }
   }
 
-  // PUT request method with data type unknown
   async put<T>(endpoint: string, data: unknown): Promise<ApiResponse<T>> {
     try {
       const response = await this.axiosInstance.put<T>(endpoint, data);
@@ -82,7 +79,6 @@ class ApiClient {
     }
   }
 
-  // DELETE request method
   async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
     try {
       const response = await this.axiosInstance.delete<T>(endpoint);
@@ -92,28 +88,25 @@ class ApiClient {
     }
   }
 
-  // Error handling method
   private handleError(error: AxiosError): ApiResponse<never> {
-    let message = 'An unexpected error occurred';
+    let message = 'Произошла непредвиденная ошибка';
     let code = 'UNKNOWN_ERROR';
     const status = error.response?.status || 500;
 
     if (error.response?.data) {
-      // Cast error.response.data to ErrorResponse instead of any
       const errData = error.response.data as ErrorResponse;
       message = errData.message || message;
       code = errData.code || code;
     } else if (error.code === 'ECONNABORTED') {
-      message = 'Request timeout';
+      message = 'Таймаут запроса';
       code = 'TIMEOUT';
     } else if (!error.response) {
-      message = 'Network error. Please check your internet connection.';
+      message = 'Ошибка сети. Проверьте ваше интернет-соединение.';
       code = 'NETWORK_ERROR';
     }
 
-    console.error(`API Error (${status}):`, message);
+    console.error(`Ошибка API (${status}):`, message);
 
-    // Handle unauthorized errors (e.g., expired token)
     if (status === 401) {
       this.handleUnauthorized();
     }
@@ -121,29 +114,24 @@ class ApiClient {
     return { error: { message, code, status } };
   }
 
-  // Method to handle unauthorized response
   private handleUnauthorized() {
-    this.clearAuthToken();
+    tokenManager.removeTokens();
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event('unauthorized'));
     }
   }
 
-  // Set the authentication token and update Axios defaults
+  // Установить токен аутентификации (используется только для начальной настройки)
   setAuthToken(token: string) {
-    this.authToken = token;
-    this.axiosInstance.defaults.headers.Authorization = `Bearer ${token}`;
+    tokenManager.setTokens(token, tokenManager.getTokens().refreshToken || "");
   }
 
-  // Clear the authentication token from both instance and Axios defaults
   clearAuthToken() {
-    this.authToken = null;
-    delete this.axiosInstance.defaults.headers.Authorization;
+    tokenManager.removeTokens();
   }
 
-  // Getter for current auth token
   getAuthToken(): string | null {
-    return this.authToken;
+    return tokenManager.getTokens().accessToken;
   }
 }
 

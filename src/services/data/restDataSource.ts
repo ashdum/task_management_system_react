@@ -7,15 +7,19 @@ import ApiClient from '../api/apiClient';
 
 export class RestDataSource implements DataSource {
   async login(email: string, password: string): Promise<ApiResponse<AuthResponse>> {
-    const response = await ApiClient.post<AuthResponse>('/auth/login', { email, password });
-    if (response.data && response.data.token) {
-      // Token is set in apiClient interceptor automatically
+    const response = await ApiClient.post<{ accessToken: string; refreshToken: string }>('/auth/login', { email, password });
+    if (response.data) {
+      ApiClient.setAuthToken(response.data.accessToken);
     }
-    return response;
+    return response as ApiResponse<AuthResponse>;
   }
 
   async register(email: string, password: string, fullName: string): Promise<ApiResponse<AuthResponse>> {
-    return ApiClient.post<AuthResponse>('/auth/register', { email, password, fullName });
+    const response = await ApiClient.post<{ accessToken: string; refreshToken: string }>('/auth/register', { email, password, fullName });
+    if (response.data) {
+      ApiClient.setAuthToken(response.data.accessToken);
+    }
+    return response as ApiResponse<AuthResponse>;
   }
 
   async logout(): Promise<ApiResponse<any>> {
@@ -25,7 +29,6 @@ export class RestDataSource implements DataSource {
   }
 
   async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<ApiResponse<any>> {
-    // Call the REST API endpoint to change password
     return ApiClient.put('/users/changePassword', { userId, oldPassword, newPassword });
   }
 
@@ -62,15 +65,15 @@ export class RestDataSource implements DataSource {
   }
 
   async createColumn(dashboardId: string, title: string): Promise<ApiResponse<Column>> {
-    return ApiClient.post<Column>(`/dashboards/${dashboardId}/columns`, { title });
+    return ApiClient.post<Column>('/columns', { dashboardId, title }); // Обновлен endpoint
   }
 
   async updateColumn(dashboardId: string, columnId: string, data: Partial<Column>): Promise<ApiResponse<Column>> {
-    return ApiClient.put<Column>(`/dashboards/${dashboardId}/columns/${columnId}`, data);
+    return ApiClient.put<Column>(`/columns/${columnId}`, { ...data, dashboardId });
   }
 
   async deleteColumn(dashboardId: string, columnId: string): Promise<ApiResponse<void>> {
-    return ApiClient.delete<void>(`/dashboards/${dashboardId}/columns/${columnId}`);
+    return ApiClient.delete<void>(`/columns/${columnId}`);
   }
 
   async updateColumnOrder(dashboardId: string, columnIds: string[]): Promise<ApiResponse<void>> {
@@ -78,18 +81,18 @@ export class RestDataSource implements DataSource {
   }
 
   async createCard(dashboardId: string, columnId: string, title: string): Promise<ApiResponse<Card>> {
-    return ApiClient.post<Card>(`/dashboards/${dashboardId}/columns/${columnId}/cards`, { title });
+    return ApiClient.post<Card>('/cards', { dashboardId, columnId, title }); // Обновлен endpoint
   }
 
   async updateCard(dashboardId: string, columnId: string, cardId: string, data: Partial<Card>): Promise<ApiResponse<Card>> {
-    return ApiClient.put<Card>(`/dashboards/${dashboardId}/columns/${columnId}/cards/${cardId}`, data);
+    return ApiClient.put<Card>(`/cards/${cardId}`, { ...data, dashboardId, columnId });
   }
 
   async deleteCard(dashboardId: string, columnId: string, cardId: string): Promise<ApiResponse<void>> {
-    return ApiClient.delete<void>(`/dashboards/${dashboardId}/columns/${columnId}/cards/${cardId}`);
+    return ApiClient.delete<void>(`/cards/${cardId}`);
   }
 
   async moveCard(dashboardId: string, fromColumnId: string, toColumnId: string, cardId: string, newIndex: number): Promise<ApiResponse<void>> {
-    return ApiClient.put<void>(`/dashboards/${dashboardId}/cards/${cardId}/move`, { fromColumnId, toColumnId, newIndex });
+    return ApiClient.put<void>(`/cards/${cardId}/move`, { dashboardId, fromColumnId, toColumnId, newIndex });
   }
 }
