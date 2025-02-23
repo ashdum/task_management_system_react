@@ -64,7 +64,7 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ dashboard, onUpda
     }
 
     try {
-      const updatedUser = await authService.changePassword(currentUser.id, oldPassword, newPassword);
+      await authService.changePassword(currentUser.id, oldPassword, newPassword);
       setOldPassword('');
       setNewPassword('');
       setPasswordSuccess(true);

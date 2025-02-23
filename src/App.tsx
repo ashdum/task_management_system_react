@@ -21,7 +21,7 @@ function AuthCallbackHandler() {
           setLoading(true);
           setError(null);
           console.log('Handling GitHub callback with code:', code); // Отладочный лог
-          const user = await authService.signInWithGithub(code);
+          await authService.signInWithGithub(code);
           // Перенаправляем на дашборд после успешной авторизации
           window.location.href = '/dashboard'; // Используем window.location.href для полного перенаправления
           setHasProcessed(true); // Устанавливаем флаг, чтобы не обрабатывать повторно

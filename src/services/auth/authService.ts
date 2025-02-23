@@ -180,6 +180,7 @@ class AuthService {
 
   // Метод для GitHub OAuth
   async signInWithGithub(code: string): Promise<User> {
+    console.log('AuthService.signInWithGithub');
     const response: ApiResponse<AuthResponse> = await dataSource.githubCallback(code);
     if (response.error) {
       if (response.error.status === 401) {

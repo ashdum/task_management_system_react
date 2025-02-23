@@ -1,6 +1,6 @@
 // src/components/auth/OAuthButtons.tsx
 import React from 'react';
-import { Github, Chrome } from 'lucide-react';
+import { Github} from 'lucide-react';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { config } from '../../config';
 

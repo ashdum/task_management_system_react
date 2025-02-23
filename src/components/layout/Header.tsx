@@ -52,7 +52,7 @@ const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
 
     try {
       setLoading(true);
-      const updatedUser = await authService.changePassword(user.id, oldPassword, newPassword);
+      await authService.changePassword(user.id, oldPassword, newPassword);
       setSuccess(true);
       setOldPassword('');
       setNewPassword('');

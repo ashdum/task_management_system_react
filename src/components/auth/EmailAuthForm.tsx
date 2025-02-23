@@ -1,7 +1,7 @@
 // src/components/auth/EmailAuthForm.tsx
 import React from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import { User } from '../../types';
+import FormField from '../common/FormField'; // Предполагается, что этот компонент существует
 
 interface EmailAuthFormProps {
   email: string;
@@ -21,6 +21,32 @@ interface EmailAuthFormProps {
   type: 'login' | 'register';
 }
 
+// Определим подсказки (tooltips) как константы
+const passwordTooltip = (
+  <div className="space-y-1">
+    <p className="font-medium mb-2">Password must contain:</p>
+    <ul className="list-disc list-inside space-y-1">
+      <li>At least 8 characters</li>
+      <li>One uppercase letter</li>
+      <li>One lowercase letter</li>
+      <li>One number</li>
+      <li>One special character</li>
+    </ul>
+  </div>
+);
+
+const emailTooltip = (
+  <div>
+    <p>Enter a valid email address that you have access to. This will be used for account recovery and notifications.</p>
+  </div>
+);
+
+const fullNameTooltip = (
+  <div>
+    <p>Enter your real name for better collaboration. Only letters, spaces, hyphens, and apostrophes are allowed.</p>
+  </div>
+);
+
 const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
   email,
   setEmail,
@@ -39,44 +65,51 @@ const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
   type,
 }) => (
   <form onSubmit={onSubmit} className="space-y-6" aria-label={type === 'login' ? 'Login Form' : 'Register Form'}>
-    <div>
-      <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-        Email <span className="text-red-500">*</span> <span className="text-gray-500 text-xs">i</span>
-      </label>
-      <input
-        type="email"
-        id="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="Enter your email"
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-        disabled={disabled}
-        required
-      />
-    </div>
-
-    {type === 'register' && (
-      <div>
-        <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
-          Full Name <span className="text-red-500">*</span> <span className="text-gray-500 text-xs">i</span>
-        </label>
+    <FormField
+      label="Email"
+      required
+      tooltip={emailTooltip}
+    >
+      <div className="relative">
         <input
-          type="text"
-          id="fullName"
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
-          placeholder="Enter your full name"
+          type="email"
+          id="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Enter your email"
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
           disabled={disabled}
           required
         />
       </div>
+    </FormField>
+
+    {type === 'register' && (
+      <FormField
+        label="Full Name"
+        required
+        tooltip={fullNameTooltip}
+      >
+        <div className="relative">
+          <input
+            type="text"
+            id="fullName"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            placeholder="Enter your full name"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+            disabled={disabled}
+            required
+          />
+        </div>
+      </FormField>
     )}
 
-    <div>
-      <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-        Password <span className="text-red-500">*</span> <span className="text-gray-500 text-xs">i</span>
-      </label>
+    <FormField
+      label="Password"
+      required
+      tooltip={passwordTooltip}
+    >
       <div className="relative">
         <input
           type={showPassword ? 'text' : 'password'}
@@ -98,13 +131,13 @@ const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
           {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
         </button>
       </div>
-    </div>
+    </FormField>
 
     {type === 'register' && (
-      <div>
-        <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-          Confirm Password <span className="text-red-500">*</span>
-        </label>
+      <FormField
+        label="Confirm Password"
+        required
+      >
         <div className="relative">
           <input
             type={showConfirmPassword ? 'text' : 'password'}
@@ -126,7 +159,7 @@ const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
             {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
         </div>
-      </div>
+      </FormField>
     )}
 
     <button
