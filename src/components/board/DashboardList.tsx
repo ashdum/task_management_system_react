@@ -11,12 +11,25 @@ const DEFAULT_GRADIENT = 'linear-gradient(to bottom right, #3B82F6, #8B5CF6)';
 // Create a separate component for the new dashboard form
 const NewDashboardForm = ({ onSubmit }: { onSubmit: (title: string) => void }) => {
   const [newDashboardTitle, setNewDashboardTitle] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newDashboardTitle.trim()) {
-      onSubmit(newDashboardTitle.trim());
+    if (!newDashboardTitle.trim()) {
+      setError('Название дашборда не должно быть пустым');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      await onSubmit(newDashboardTitle.trim());
       setNewDashboardTitle('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Не удалось создать дашборд');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -27,16 +40,26 @@ const NewDashboardForm = ({ onSubmit }: { onSubmit: (title: string) => void }) =
         value={newDashboardTitle}
         onChange={(e) => setNewDashboardTitle(e.target.value)}
         placeholder="New dashboard name..."
-        className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+        disabled={loading}
       />
       <button
         type="submit"
-        disabled={!newDashboardTitle.trim()}
+        disabled={loading || !newDashboardTitle.trim()}
         className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
       >
-        <Plus size={20} />
-        Create Dashboard
+        {loading ? (
+          <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></span>
+        ) : (
+          <>
+            <Plus size={20} />
+            Create Dashboard
+          </>
+        )}
       </button>
+      {error && (
+        <div className="text-red-500 text-sm mt-2">{error}</div>
+      )}
     </form>
   );
 };
@@ -91,9 +114,20 @@ const DashboardList: React.FC<Props> = ({ onDashboardSelect }) => {
   );
 
   const handleCreateDashboard = async (title: string) => {
-    if (currentUser) {
-      await addDashboard(title);
+    if (!currentUser) {
+      throw new Error('Пользователь не авторизован');
     }
+
+    const newDashboard: Dashboard = {
+      id: `dashboard-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      title,
+      ownerIds: [currentUser.id],
+      members: [currentUser],
+      createdAt: new Date().toISOString(),
+      columns: [],
+    };
+
+    await addDashboard(newDashboard); // Передаем полный объект Dashboard
   };
 
   const getUserInitials = (email: string = '') => {
@@ -366,13 +400,6 @@ const DashboardList: React.FC<Props> = ({ onDashboardSelect }) => {
             <p className="text-gray-500 mb-6">
               Create your first dashboard to get started
             </p>
-            <button
-              onClick={() => document.querySelector('input')?.focus()}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
-            >
-              <Plus size={20} />
-              Create Dashboard
-            </button>
           </div>
         )}
       </div>

@@ -1,74 +1,11 @@
 // src/App.tsx
 import { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import Dashboard from './components/board/Dashboard';
 import { User } from './types';
 import authService from './services/auth/authService';
-
-function AuthCallbackHandler() {
-  const location = useLocation();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [hasProcessed, setHasProcessed] = useState(false); // Флаг для предотвращения дублирования
-
-  useEffect(() => {
-    const handleCallback = async () => {
-      const urlParams = new URLSearchParams(location.search);
-      const code = urlParams.get('code');
-      if (code && location.pathname === '/auth/github/callback' && !hasProcessed) {
-        try {
-          setLoading(true);
-          setError(null);
-          console.log('Handling GitHub callback with code:', code); // Отладочный лог
-          await authService.signInWithGithub(code);
-          // Перенаправляем на дашборд после успешной авторизации
-          window.location.href = '/dashboard'; // Используем window.location.href для полного перенаправления
-          setHasProcessed(true); // Устанавливаем флаг, чтобы не обрабатывать повторно
-        } catch (err) {
-          if (err instanceof Error) {
-            setError(err.message);
-          } else {
-            setError('Failed to authenticate with GitHub');
-          }
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-
-    handleCallback();
-  }, [location, hasProcessed]); // Добавляем hasProcessed в зависимости, чтобы избежать повторных вызовов
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-          <p className="text-gray-600">Загрузка...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center p-4 bg-red-50 rounded-lg">
-          <p className="text-red-600 mb-4">{error}</p>
-          <button
-            onClick={() => window.location.href = '/'} // Перенаправляем на главную
-            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-          >
-            Вернуться на главную
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return null; // Если всё прошло успешно, компонент не рендерится
-}
+import GitHubCallbackHandler from './components/auth/GitHubCallbackHandler'; // Импортируем новый компонент
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -152,7 +89,7 @@ function App() {
             user ? <Dashboard user={user} onSignOut={handleSignOut} /> : <Navigate to="/" replace />
           }
         />
-        <Route path="/auth/github/callback" element={<AuthCallbackHandler />} />
+        <Route path="/auth/github/callback" element={<GitHubCallbackHandler />} />
       </Routes>
     </Router>
   );

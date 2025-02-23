@@ -1,3 +1,4 @@
+// src/store.ts
 import { create } from 'zustand';
 import { dataSource } from './services/data/dataSource'; // use dataSource facade
 import { Column, Card, Dashboard } from './types';
@@ -10,7 +11,7 @@ interface BoardState {
   loading: boolean;
   error: string | null;
   loadDashboards: () => Promise<void>;
-  addDashboard: (title: string) => Promise<void>;
+  addDashboard: (dashboard: Dashboard) => Promise<void>;
   setCurrentDashboard: (dashboardId: string) => Promise<void>;
   updateDashboard: (dashboardId: string, updates: Partial<Dashboard>) => Promise<void>;
   addColumn: (title: string) => Promise<void>;
@@ -44,14 +45,15 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     }
   },
 
-  addDashboard: async (title: string) => {
+  addDashboard: async (dashboard: Dashboard) => {
     try {
       set({ loading: true, error: null });
       const currentUser = authService.getCurrentUser();
       if (!currentUser) {
         throw new Error('User not authenticated');
       }
-      const response = await dataSource.createDashboard(title, currentUser.id);
+      // Убедимся, что dashboard содержит корректные данные
+      const response = await dataSource.createDashboard(dashboard.title, dashboard.ownerIds[0]);
       if (response.error) throw new Error(response.error.message);
       set(state => ({
         dashboards: [...state.dashboards, response.data!],

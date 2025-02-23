@@ -1,5 +1,5 @@
 // src/components/auth/useAuthModal.ts
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import AuthService from '../../services/auth/authService';
 import {
   AuthError,
@@ -9,7 +9,7 @@ import {
   ValidationError,
 } from '../../lib/authErrors';
 import { User } from '../../types';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { config } from '../../config';
 
 interface UseAuthModalProps {
@@ -29,37 +29,6 @@ const useAuthModal = ({ onClose, onSuccess, type }: UseAuthModalProps) => {
   const [error, setError] = useState<string | null>(null);
 
   const navigate = useNavigate();
-  const location = useLocation();
-
-  const handleGithubCallback = async () => {
-    const urlParams = new URLSearchParams(location.search);
-    const code = urlParams.get('code');
-    if (code && location.pathname === '/auth/github/callback') {
-      try {
-        setLoading(true);
-        setError(null);
-        const user = await AuthService.signInWithGithub(code); // Используем AuthService для GitHub
-        onSuccess(user);
-        onClose();
-        navigate('/dashboard', { replace: true });
-      } catch (err) {
-        if (err instanceof UserNotFoundError) {
-          setError('Пользователь не найден');
-        } else if (err instanceof AuthError) {
-          setError(err.message);
-        } else {
-          setError('Failed to authenticate with GitHub');
-        }
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
-
-  useEffect(() => {
-    handleGithubCallback();
-    console.log('useEffect called');
-  }, [location, navigate, onClose, onSuccess]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

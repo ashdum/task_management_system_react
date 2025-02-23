@@ -4,6 +4,7 @@ import { LogOut, Settings, User as UserIcon, Eye, EyeOff, X } from 'lucide-react
 import { User } from '../../types';
 import { useNavigate } from 'react-router-dom';
 import authService from '../../services/auth/authService';
+import FormField from '../common/FormField'; // Импортируем FormField для подсказок
 
 interface HeaderProps {
   user: User;
@@ -75,6 +76,20 @@ const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
       .map(part => part[0].toUpperCase())
       .join('');
   };
+
+  // Подсказка (tooltip) для пароля
+  const passwordTooltip = (
+    <div className="space-y-1">
+      <p className="font-medium mb-2">Password must contain:</p>
+      <ul className="list-disc list-inside space-y-1">
+        <li>At least 8 characters</li>
+        <li>One uppercase letter</li>
+        <li>One lowercase letter</li>
+        <li>One number</li>
+        <li>One special character</li>
+      </ul>
+    </div>
+  );
 
   return (
     <header className="bg-white shadow-sm">
@@ -166,68 +181,83 @@ const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
                 </div>
               )}
 
-              <div className="relative">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Текущий пароль
-                </label>
-                <input
-                  type={showOldPassword ? 'text' : 'password'}
-                  value={oldPassword}
-                  onChange={(e) => setOldPassword(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  required
-                  disabled={loading}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowOldPassword(!showOldPassword)}
-                  className="absolute right-3 top-[50%] -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                >
-                  {showOldPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-              </div>
+              <FormField
+                label="Текущий пароль"
+                required
+                tooltip={passwordTooltip} // Добавляем подсказку для текущего пароля
+              >
+                <div className="relative">
+                  <input
+                    type={showOldPassword ? 'text' : 'password'}
+                    value={oldPassword}
+                    onChange={(e) => setOldPassword(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    required
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowOldPassword(!showOldPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 disabled:text-gray-300 disabled:cursor-not-allowed"
+                    disabled={loading}
+                    aria-label={showOldPassword ? 'Hide current password' : 'Show current password'}
+                  >
+                    {showOldPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+              </FormField>
 
-              <div className="relative">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Новый пароль
-                </label>
-                <input
-                  type={showNewPassword ? 'text' : 'password'}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  required
-                  disabled={loading}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-3 top-[50%] -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                >
-                  {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-              </div>
+              <FormField
+                label="Новый пароль"
+                required
+                tooltip={passwordTooltip} // Добавляем подсказку для нового пароля
+              >
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    required
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 disabled:text-gray-300 disabled:cursor-not-allowed"
+                    disabled={loading}
+                    aria-label={showNewPassword ? 'Hide new password' : 'Show new password'}
+                  >
+                    {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+              </FormField>
 
-              <div className="relative">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Подтвердите новый пароль
-                </label>
-                <input
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  required
-                  disabled={loading}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-[50%] -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                >
-                  {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-              </div>
+              <FormField
+                label="Подтвердите новый пароль"
+                required
+                tooltip={passwordTooltip} // Добавляем подсказку для подтверждения пароля
+              >
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    required
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 disabled:text-gray-300 disabled:cursor-not-allowed"
+                    disabled={loading}
+                    aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                  >
+                    {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+              </FormField>
 
               <button
                 type="submit"
