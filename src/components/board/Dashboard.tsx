@@ -1,3 +1,4 @@
+// src/components/board/Dashboard.tsx
 import React, { useState } from 'react';
 import { DragDropContext, Droppable, DropResult } from '@hello-pangea/dnd';
 import { Plus, ArrowLeft, Search, BarChart3 } from 'lucide-react';
@@ -77,7 +78,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onSignOut }) => {
       return;
     }
 
-    // Handle column reordering
     if (type === 'column') {
       if (source.index === destination.index) {
         return;
@@ -92,7 +92,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onSignOut }) => {
       return;
     }
 
-    // Handle card movement
     if (
       source.droppableId === destination.droppableId &&
       source.index === destination.index
@@ -113,7 +112,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onSignOut }) => {
     updateDashboard(currentDashboard.id, { background });
   };
 
-  // Sort columns by order
   const sortedColumns = [...(filteredColumns || [])].sort((a, b) => 
     (a.order || 0) - (b.order || 0)
   );
@@ -174,6 +172,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onSignOut }) => {
                   <DashboardSettings
                     dashboard={currentDashboard}
                     onUpdateBackground={handleUpdateBackground}
+                    user={user} // Передаем user как есть
                   />
                 )}
                 {canEditDashboard && (

@@ -26,7 +26,7 @@ class DataSourceFactory {
           break;
         default:
           console.warn(`Unknown data source type: ${sourceType}, defaulting to REST`);
-          DataSourceFactory.instance = new RestDataSource();
+          DataSourceFactory.instance = new LocalDataSource();
       }
     }
     return DataSourceFactory.instance;

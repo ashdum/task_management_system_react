@@ -1,6 +1,4 @@
 // src/pages/LandingPage.tsx
-// Landing page using centralized authService logic for authentication
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout, Users, Clock } from 'lucide-react';
@@ -9,7 +7,7 @@ import Footer from '../components/layout/Footer';
 import { User } from '../types';
 
 interface Props {
-  setUser: (user: User) => void;
+  setUser: (user: User | null) => void;
 }
 
 const LandingPage: React.FC<Props> = ({ setUser }) => {
@@ -17,11 +15,10 @@ const LandingPage: React.FC<Props> = ({ setUser }) => {
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const navigate = useNavigate();
 
-  // onSuccess should receive a User returned from authService.signIn/signUp
   const handleAuthSuccess = (user: User) => {
-    // No need to manually set localStorage – authService handles token storage
+    console.log('handleAuthSuccess called with user:', user);
     setUser(user);
-    navigate('/dashboard');
+    navigate('/dashboard', { replace: true });
   };
 
   return (

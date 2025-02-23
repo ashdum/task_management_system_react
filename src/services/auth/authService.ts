@@ -1,6 +1,4 @@
 // src/services/auth/authService.ts
-// Centralized auth service wrapping signIn, signUp, signOut and user retrieval
-
 import { ApiResponse, User, AuthResponse, Dashboard } from '../../types';
 import { tokenManager } from './tokenManager';
 import {
@@ -12,23 +10,26 @@ import {
 } from '../../lib/authErrors';
 import { validateEmail, validateFullName, validatePassword } from './validation';
 import { dataSource } from '../data/dataSource';
+import { DataSourceType, config } from '../../config';
 
 class AuthService {
   async signUp(email: string, fullName: string, password: string): Promise<User> {
-    const emailErrors = validateEmail(email);
-    if (emailErrors.length > 0) {
-      throw new ValidationError(emailErrors[0]);
-    }
-    const fullNameErrors = validateFullName(fullName);
-    if (fullNameErrors.length > 0) {
-      throw new ValidationError(fullNameErrors[0]);
-    }
-    const passwordErrors = validatePassword(password);
-    if (passwordErrors.length > 0) {
-      throw new ValidationError(passwordErrors[0]);
+    if (config.getDataSource() === DataSourceType.LOCAL) {
+      // Валидация для локального режима (если нужно)
+      const emailErrors = validateEmail(email);
+      if (emailErrors.length > 0) {
+        throw new ValidationError(emailErrors[0]);
+      }
+      const fullNameErrors = validateFullName(fullName);
+      if (fullNameErrors.length > 0) {
+        throw new ValidationError(fullNameErrors[0]);
+      }
+      const passwordErrors = validatePassword(password);
+      if (passwordErrors.length > 0) {
+        throw new ValidationError(passwordErrors[0]);
+      }
     }
 
-    // Используем тип AuthResponse из types.ts
     const response: ApiResponse<AuthResponse> = await dataSource.register(email, password, fullName);
     if (response.error) {
       if (response.error.status === 401) {
@@ -40,7 +41,6 @@ class AuthService {
       throw new AuthError('Не удалось создать пользователя');
     }
 
-    // Store tokens and extract user from accessToken
     tokenManager.setTokens(response.data.accessToken, response.data.refreshToken);
     const decoded = tokenManager.decodeToken(response.data.accessToken);
     if (!decoded || !decoded.user) {
@@ -50,19 +50,22 @@ class AuthService {
   }
 
   async signIn(email: string, password: string): Promise<User> {
-    const emailErrors = validateEmail(email);
-    if (emailErrors.length > 0) {
-      throw new ValidationError(emailErrors[0]);
-    }
-    const passwordErrors = validatePassword(password);
-    if (passwordErrors.length > 0) {
-      throw new ValidationError(passwordErrors[0]);
+    if (config.getDataSource() === DataSourceType.LOCAL) {
+      // Валидация для локального режима (если нужно)
+      const emailErrors = validateEmail(email);
+      if (emailErrors.length > 0) {
+        throw new ValidationError(emailErrors[0]);
+      }
+      const passwordErrors = validatePassword(password);
+      if (passwordErrors.length > 0) {
+        throw new ValidationError(passwordErrors[0]);
+      }
     }
 
     const response: ApiResponse<AuthResponse> = await dataSource.login(email, password);
     if (response.error) {
       if (response.error.status === 401) {
-        throw new UserNotFoundError(); // Или InvalidPasswordError в зависимости от текста ошибки
+        throw new UserNotFoundError();
       }
       throw new AuthError(response.error.message || 'Не удалось войти');
     }
@@ -87,7 +90,7 @@ class AuthService {
     tokenManager.removeTokens();
   }
 
-  async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<void> {
+  async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<User> {
     const passwordErrors = validatePassword(newPassword);
     if (passwordErrors.length > 0) {
       throw new ValidationError(passwordErrors[0]);
@@ -100,6 +103,34 @@ class AuthService {
       }
       throw new AuthError(response.error.message || 'Не удалось сменить пароль');
     }
+
+    let decoded: { user: User };
+    if (config.getDataSource() === DataSourceType.LOCAL) {
+      if (!response.data) {
+        throw new AuthError('Не удалось обновить пароль');
+      }
+      const user = this.getCurrentUser();
+      if (!user) {
+        throw new AuthError('Пользователь не найден');
+      }
+      const { accessToken } = tokenManager.getTokens();
+      if (!accessToken) {
+        throw new AuthError('Токен отсутствует после смены пароля');
+      }
+      decoded = tokenManager.decodeToken(accessToken);
+    } else {
+      const authResponse = response.data as AuthResponse;
+      if (!authResponse || !authResponse.accessToken) {
+        throw new AuthError('Не удалось обновить пароль');
+      }
+      tokenManager.setTokens(authResponse.accessToken, authResponse.refreshToken);
+      decoded = tokenManager.decodeToken(authResponse.accessToken);
+    }
+
+    if (!decoded || !decoded.user) {
+      throw new AuthError('Некорректный токен после смены пароля');
+    }
+    return decoded.user;
   }
 
   getCurrentUser(): User | null {
@@ -124,6 +155,48 @@ class AuthService {
       throw new AuthorizationError('Не удалось получить дашборды пользователя');
     }
     return response.data || [];
+  }
+
+  // Метод для Google OAuth
+  async signInWithGoogle(credential: string): Promise<User> {
+    const response: ApiResponse<AuthResponse> = await dataSource.googleLogin(credential);
+    if (response.error) {
+      if (response.error.status === 401) {
+        throw new UserNotFoundError();
+      }
+      throw new AuthError(response.error.message || 'Не удалось войти через Google');
+    }
+    if (!response.data) {
+      throw new AuthError('Не удалось аутентифицировать пользователя через Google');
+    }
+
+    tokenManager.setTokens(response.data.accessToken, response.data.refreshToken);
+    const decoded = tokenManager.decodeToken(response.data.accessToken);
+    if (!decoded || !decoded.user) {
+      throw new AuthError('Некорректный токен после входа через Google');
+    }
+    return decoded.user;
+  }
+
+  // Метод для GitHub OAuth
+  async signInWithGithub(code: string): Promise<User> {
+    const response: ApiResponse<AuthResponse> = await dataSource.githubCallback(code);
+    if (response.error) {
+      if (response.error.status === 401) {
+        throw new UserNotFoundError();
+      }
+      throw new AuthError(response.error.message || 'Не удалось войти через GitHub');
+    }
+    if (!response.data) {
+      throw new AuthError('Не удалось аутентифицировать пользователя через GitHub');
+    }
+
+    tokenManager.setTokens(response.data.accessToken, response.data.refreshToken);
+    const decoded = tokenManager.decodeToken(response.data.accessToken);
+    if (!decoded || !decoded.user) {
+      throw new AuthError('Некорректный токен после входа через GitHub');
+    }
+    return decoded.user;
   }
 }
 

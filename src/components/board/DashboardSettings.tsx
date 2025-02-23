@@ -1,27 +1,32 @@
 // src/components/board/DashboardSettings.tsx
-// Dashboard settings component – optimized to load background data from resources
-
 import React, { useState } from 'react';
-import { Settings, Image as ImageIcon, X, UserPlus, Mail, Shield } from 'lucide-react';
-import { Dashboard } from '../../types';
+import { Settings, Image as ImageIcon, X, UserPlus, Mail, Shield, Lock } from 'lucide-react';
+import { Dashboard, User } from '../../types';
 import { useBoardStore } from '../../store';
 import { PREDEFINED_BACKGROUNDS, BackgroundConfig } from '../../resources/backgrounds';
+import authService from '../../services/auth/authService';
 
 interface DashboardSettingsProps {
   dashboard: Dashboard;
   onUpdateBackground: (background: string) => void;
+  user?: User; // Пропс user теперь необязательный
 }
 
-// Define type for background category keys
 type BackgroundCategory = keyof BackgroundConfig;
 
-const DashboardSettings: React.FC<DashboardSettingsProps> = ({ dashboard, onUpdateBackground }) => {
+const DashboardSettings: React.FC<DashboardSettingsProps> = ({ dashboard, onUpdateBackground, user }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteSuccess, setInviteSuccess] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<BackgroundCategory>('gradients');
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
   const { inviteToDashboard } = useBoardStore();
+
+  const currentUser = user || authService.getCurrentUser(); // Fallback на authService, если user не передан
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +34,7 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ dashboard, onUpda
     setInviteSuccess(false);
 
     if (!inviteEmail.trim()) {
-      setInviteError('Please enter an email address');
+      setInviteError('Пожалуйста, введите адрес электронной почты');
       return;
     }
 
@@ -39,11 +44,36 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ dashboard, onUpda
       setInviteEmail('');
       setTimeout(() => setInviteSuccess(false), 3000);
     } catch (error) {
-      setInviteError(error instanceof Error ? error.message : 'Failed to send invitation');
+      setInviteError(error instanceof Error ? error.message : 'Не удалось отправить приглашение');
     }
   };
 
-  // Returns initials based on email
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError(null);
+    setPasswordSuccess(false);
+
+    if (!currentUser) {
+      setPasswordError('Пользователь не авторизован');
+      return;
+    }
+
+    if (!oldPassword.trim() || !newPassword.trim()) {
+      setPasswordError('Пожалуйста, заполните оба поля пароля');
+      return;
+    }
+
+    try {
+      const updatedUser = await authService.changePassword(currentUser.id, oldPassword, newPassword);
+      setOldPassword('');
+      setNewPassword('');
+      setPasswordSuccess(true);
+      setTimeout(() => setPasswordSuccess(false), 3000);
+    } catch (error) {
+      setPasswordError(error instanceof Error ? error.message : 'Не удалось сменить пароль');
+    }
+  };
+
   const getUserInitials = (email: string | undefined) => {
     if (!email) return '??';
     return email
@@ -59,7 +89,7 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ dashboard, onUpda
         <button
           onClick={() => setIsOpen(true)}
           className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-          title="Dashboard Settings"
+          title="Настройки дашборда"
         >
           <Settings size={20} />
         </button>
@@ -69,7 +99,7 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ dashboard, onUpda
         <div className="fixed inset-0 bg-black/50 flex items-start justify-end z-50">
           <div className="w-96 h-full bg-white shadow-xl overflow-y-auto">
             <div className="p-4 border-b sticky top-0 bg-white z-10 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Dashboard Settings</h2>
+              <h2 className="text-lg font-semibold">Настройки дашборда</h2>
               <button
                 onClick={() => setIsOpen(false)}
                 className="p-1 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100"
@@ -83,10 +113,9 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ dashboard, onUpda
               <div>
                 <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
                   <ImageIcon size={16} />
-                  Background
+                  Фон
                 </h3>
 
-                {/* Category Tabs */}
                 <div className="flex overflow-x-auto mb-4 pb-2 -mx-4 px-4 space-x-2">
                   {(Object.keys(PREDEFINED_BACKGROUNDS) as BackgroundCategory[]).map((category) => (
                     <button
@@ -103,7 +132,6 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ dashboard, onUpda
                   ))}
                 </div>
 
-                {/* Background Grid */}
                 <div className="grid grid-cols-2 gap-3">
                   {PREDEFINED_BACKGROUNDS[selectedCategory].map((bg) => (
                     <button
@@ -131,11 +159,54 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ dashboard, onUpda
                 </div>
               </div>
 
+              {/* Change Password Section */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                  <Lock size={16} />
+                  Смена пароля
+                </h3>
+                <form onSubmit={handleChangePassword} className="space-y-3">
+                  <div>
+                    <input
+                      type="password"
+                      value={oldPassword}
+                      onChange={(e) => setOldPassword(e.target.value)}
+                      placeholder="Старый пароль"
+                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      autoComplete="current-password"
+                    />
+                  </div>
+                  <div>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Новый пароль"
+                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      autoComplete="new-password"
+                    />
+                  </div>
+                  {passwordError && (
+                    <p className="text-sm text-red-600">{passwordError}</p>
+                  )}
+                  {passwordSuccess && (
+                    <p className="text-sm text-green-600">Пароль успешно изменен!</p>
+                  )}
+                  <button
+                    type="submit"
+                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Lock size={16} />
+                    Сменить пароль
+                  </button>
+                </form>
+              </div>
+
               {/* Invite Members Section */}
               <div>
                 <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
                   <UserPlus size={16} />
-                  Invite Members
+                  Приглашение участников
                 </h3>
 
                 <form onSubmit={handleInvite} className="space-y-3">
@@ -145,7 +216,7 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ dashboard, onUpda
                         type="email"
                         value={inviteEmail}
                         onChange={(e) => setInviteEmail(e.target.value)}
-                        placeholder="Enter email address"
+                        placeholder="Введите email"
                         className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
@@ -154,7 +225,7 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ dashboard, onUpda
                       <p className="mt-1 text-sm text-red-600">{inviteError}</p>
                     )}
                     {inviteSuccess && (
-                      <p className="mt-1 text-sm text-green-600">Invitation sent successfully!</p>
+                      <p className="mt-1 text-sm text-green-600">Приглашение успешно отправлено!</p>
                     )}
                   </div>
                   <button
@@ -162,7 +233,7 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ dashboard, onUpda
                     className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
                   >
                     <UserPlus size={16} />
-                    Send Invitation
+                    Отправить приглашение
                   </button>
                 </form>
               </div>
@@ -170,7 +241,7 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ dashboard, onUpda
               {/* Members List */}
               {dashboard.members && dashboard.members.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-3">Members</h3>
+                  <h3 className="text-sm font-medium text-gray-700 mb-3">Участники</h3>
                   <div className="space-y-2">
                     {dashboard.members.map((member) => (
                       member && (
@@ -189,7 +260,7 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ dashboard, onUpda
                               {dashboard.ownerIds.includes(member.id) && (
                                 <p className="text-xs text-blue-600 flex items-center gap-1">
                                   <Shield size={12} />
-                                  Owner
+                                  Владелец
                                 </p>
                               )}
                             </div>
@@ -204,7 +275,7 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ dashboard, onUpda
               {/* Pending Invitations */}
               {dashboard.invitations && dashboard.invitations.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-3">Pending Invitations</h3>
+                  <h3 className="text-sm font-medium text-gray-700 mb-3">Ожидающие приглашения</h3>
                   <div className="space-y-2">
                     {dashboard.invitations
                       .filter((inv) => inv.status === 'pending')
@@ -216,11 +287,11 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ dashboard, onUpda
                           <div>
                             <p className="text-sm text-gray-900">{invitation.inviteeEmail}</p>
                             <p className="text-xs text-gray-500">
-                              Invited by {invitation.inviterEmail}
+                              Приглашен {invitation.inviterEmail}
                             </p>
                           </div>
                           <span className="text-xs text-yellow-600 bg-yellow-50 px-2 py-1 rounded-full">
-                            Pending
+                            Ожидает
                           </span>
                         </div>
                       ))}

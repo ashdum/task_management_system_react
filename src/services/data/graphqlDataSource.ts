@@ -1,17 +1,13 @@
 // src/services/data/graphqlDataSource.ts
-// Implementation of DataSource for GraphQL
-
 import { ApiResponse, AuthResponse, Dashboard, DashboardInvitation, Card, Column } from '../../types';
 import { executeGraphQLQuery } from '../api/graphqlClient';
 import { DataSource } from './types';
 
 export class GraphQLDataSource implements DataSource {
-  // Helper query method to execute GraphQL operations
   private query<T, R = T>(query: string, variables?: Record<string, any>): Promise<ApiResponse<R>> {
     return executeGraphQLQuery<R>(query, variables);
   }
 
-  // Auth methods
   async login(email: string, password: string): Promise<ApiResponse<AuthResponse>> {
     const mutation = `
       mutation Login($email: String!, $password: String!) {
@@ -27,7 +23,11 @@ export class GraphQLDataSource implements DataSource {
       }
     `;
     const response = await this.query<{ login: AuthResponse }>(mutation, { email, password });
-    return { data: response.data?.login, status: response.status };
+    return {
+      data: response.data?.login,
+      error: response.error,
+      status: response.status || 200,
+    };
   }
 
   async register(email: string, password: string, fullName: string): Promise<ApiResponse<AuthResponse>> {
@@ -45,7 +45,11 @@ export class GraphQLDataSource implements DataSource {
       }
     `;
     const response = await this.query<{ register: AuthResponse }>(mutation, { email, password, fullName });
-    return { data: response.data?.register, status: response.status };
+    return {
+      data: response.data?.register,
+      error: response.error,
+      status: response.status || 201,
+    };
   }
 
   async logout(): Promise<ApiResponse<any>> {
@@ -54,23 +58,79 @@ export class GraphQLDataSource implements DataSource {
     return response;
   }
 
-  async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<ApiResponse<any>> {
+  async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<ApiResponse<AuthResponse>> {
     const mutation = `
       mutation ChangePassword($userId: ID!, $oldPassword: String!, $newPassword: String!) {
         changePassword(userId: $userId, oldPassword: $oldPassword, newPassword: $newPassword) {
-          success
+          id
+          email
+          fullName
+          createdAt
+          updatedAt
+          token
+          refreshToken
         }
       }
     `;
-    const response = await this.query<{ changePassword: { success: boolean } }>(mutation, {
+    const response = await this.query<{ changePassword: AuthResponse }>(mutation, {
       userId,
       oldPassword,
       newPassword,
     });
-    return { data: response.data?.changePassword, status: response.status || 200 };
+    return {
+      data: response.data?.changePassword,
+      error: response.error,
+      status: response.status || 200,
+    };
   }
 
-  // Optional: Add getDashboards method if required by DataSource interface
+  // Метод для Google OAuth
+  async googleLogin(credential: string): Promise<ApiResponse<AuthResponse>> {
+    const mutation = `
+      mutation GoogleLogin($credential: String!) {
+        googleLogin(credential: $credential) {
+          id
+          email
+          fullName
+          createdAt
+          updatedAt
+          token
+          refreshToken
+        }
+      }
+    `;
+    const response = await this.query<{ googleLogin: AuthResponse }>(mutation, { credential });
+    return {
+      data: response.data?.googleLogin,
+      error: response.error,
+      status: response.status || 200,
+    };
+  }
+
+  // Метод для GitHub OAuth
+  async githubCallback(code: string): Promise<ApiResponse<AuthResponse>> {
+    const mutation = `
+      mutation GithubCallback($code: String!) {
+        githubCallback(code: $code) {
+          id
+          email
+          fullName
+          createdAt
+          updatedAt
+          token
+          refreshToken
+        }
+      }
+    `;
+    const response = await this.query<{ githubCallback: AuthResponse }>(mutation, { code });
+    return {
+      data: response.data?.githubCallback,
+      error: response.error,
+      status: response.status || 200,
+    };
+  }
+
+  // Остальные методы (dashboards, columns, cards, invitations) остаются без изменений
   async getDashboards(): Promise<ApiResponse<Dashboard[]>> {
     const query = `
       query GetDashboards {
@@ -102,7 +162,7 @@ export class GraphQLDataSource implements DataSource {
       }
     `;
     const response = await this.query<{ dashboards: Dashboard[] }>(query);
-    return { data: response.data?.dashboards, status: 200 };
+    return { data: response.data?.dashboards, error: response.error, status: response.status || 200 };
   }
 
   async getDashboard(id: string): Promise<ApiResponse<Dashboard>> {
@@ -136,7 +196,7 @@ export class GraphQLDataSource implements DataSource {
       }
     `;
     const response = await this.query<{ dashboard: Dashboard }>(query, { id });
-    return { data: response.data?.dashboard, status: 200 };
+    return { data: response.data?.dashboard, error: response.error, status: response.status || 200 };
   }
 
   async createDashboard(title: string, userId: string): Promise<ApiResponse<Dashboard>> {
@@ -170,7 +230,7 @@ export class GraphQLDataSource implements DataSource {
       }
     `;
     const response = await this.query<{ createDashboard: Dashboard }>(mutation, { title, userId });
-    return { data: response.data?.createDashboard, status: 201 };
+    return { data: response.data?.createDashboard, error: response.error, status: response.status || 201 };
   }
 
   async updateDashboard(id: string, data: Partial<Dashboard>): Promise<ApiResponse<Dashboard>> {
@@ -200,7 +260,7 @@ export class GraphQLDataSource implements DataSource {
       }
     `;
     const response = await this.query<{ updateDashboard: Dashboard }>(mutation, { id, data });
-    return { data: response.data?.updateDashboard, status: 200 };
+    return { data: response.data?.updateDashboard, error: response.error, status: response.status || 200 };
   }
 
   async deleteDashboard(id: string): Promise<ApiResponse<void>> {
@@ -209,11 +269,10 @@ export class GraphQLDataSource implements DataSource {
         deleteDashboard(id: $id)
       }
     `;
-    await this.query(mutation, { id });
-    return { data: undefined, status: 200 };
+    const response = await this.query(mutation, { id });
+    return { data: undefined, error: response.error, status: response.status || 200 };
   }
 
-  // Column methods
   async createColumn(dashboardId: string, title: string): Promise<ApiResponse<Column>> {
     const mutation = `
       mutation CreateColumn($dashboardId: ID!, $title: String!) {
@@ -229,7 +288,7 @@ export class GraphQLDataSource implements DataSource {
       }
     `;
     const response = await this.query<{ createColumn: Column }>(mutation, { dashboardId, title });
-    return { data: response.data?.createColumn, status: 201 };
+    return { data: response.data?.createColumn, error: response.error, status: response.status || 201 };
   }
 
   async updateColumn(dashboardId: string, columnId: string, data: Partial<Column>): Promise<ApiResponse<Column>> {
@@ -247,7 +306,7 @@ export class GraphQLDataSource implements DataSource {
       }
     `;
     const response = await this.query<{ updateColumn: Column }>(mutation, { dashboardId, columnId, data });
-    return { data: response.data?.updateColumn, status: 200 };
+    return { data: response.data?.updateColumn, error: response.error, status: response.status || 200 };
   }
 
   async deleteColumn(dashboardId: string, columnId: string): Promise<ApiResponse<void>> {
@@ -256,8 +315,8 @@ export class GraphQLDataSource implements DataSource {
         deleteColumn(dashboardId: $dashboardId, columnId: $columnId)
       }
     `;
-    await this.query(mutation, { dashboardId, columnId });
-    return { data: undefined, status: 200 };
+    const response = await this.query(mutation, { dashboardId, columnId });
+    return { data: undefined, error: response.error, status: response.status || 200 };
   }
 
   async updateColumnOrder(dashboardId: string, columnIds: string[]): Promise<ApiResponse<void>> {
@@ -266,11 +325,10 @@ export class GraphQLDataSource implements DataSource {
         updateColumnOrder(dashboardId: $dashboardId, columnIds: $columnIds)
       }
     `;
-    await this.query(mutation, { dashboardId, columnIds });
-    return { data: undefined, status: 200 };
+    const response = await this.query(mutation, { dashboardId, columnIds });
+    return { data: undefined, error: response.error, status: response.status || 200 };
   }
 
-  // Card methods
   async createCard(dashboardId: string, columnId: string, title: string): Promise<ApiResponse<Card>> {
     const mutation = `
       mutation CreateCard($dashboardId: ID!, $columnId: ID!, $title: String!) {
@@ -282,7 +340,7 @@ export class GraphQLDataSource implements DataSource {
       }
     `;
     const response = await this.query<{ createCard: Card }>(mutation, { dashboardId, columnId, title });
-    return { data: response.data?.createCard, status: 201 };
+    return { data: response.data?.createCard, error: response.error, status: response.status || 201 };
   }
 
   async updateCard(dashboardId: string, columnId: string, cardId: string, data: Partial<Card>): Promise<ApiResponse<Card>> {
@@ -296,7 +354,7 @@ export class GraphQLDataSource implements DataSource {
       }
     `;
     const response = await this.query<{ updateCard: Card }>(mutation, { dashboardId, columnId, cardId, data });
-    return { data: response.data?.updateCard, status: 200 };
+    return { data: response.data?.updateCard, error: response.error, status: response.status || 200 };
   }
 
   async deleteCard(dashboardId: string, columnId: string, cardId: string): Promise<ApiResponse<void>> {
@@ -305,8 +363,8 @@ export class GraphQLDataSource implements DataSource {
         deleteCard(dashboardId: $dashboardId, columnId: $columnId, cardId: $cardId)
       }
     `;
-    await this.query(mutation, { dashboardId, columnId, cardId });
-    return { data: undefined, status: 200 };
+    const response = await this.query(mutation, { dashboardId, columnId, cardId });
+    return { data: undefined, error: response.error, status: response.status || 200 };
   }
 
   async moveCard(dashboardId: string, fromColumnId: string, toColumnId: string, cardId: string, newIndex: number): Promise<ApiResponse<void>> {
@@ -315,11 +373,10 @@ export class GraphQLDataSource implements DataSource {
         moveCard(dashboardId: $dashboardId, fromColumnId: $fromColumnId, toColumnId: $toColumnId, cardId: $cardId, newIndex: $newIndex)
       }
     `;
-    await this.query(mutation, { dashboardId, fromColumnId, toColumnId, cardId, newIndex });
-    return { data: undefined, status: 200 };
+    const response = await this.query(mutation, { dashboardId, fromColumnId, toColumnId, cardId, newIndex });
+    return { data: undefined, error: response.error, status: response.status || 200 };
   }
 
-  // Dashboard invitation methods
   async inviteToDashboard(dashboardId: string, email: string): Promise<ApiResponse<DashboardInvitation>> {
     const mutation = `
       mutation InviteToDashboard($dashboardId: ID!, $email: String!) {
@@ -335,7 +392,7 @@ export class GraphQLDataSource implements DataSource {
       }
     `;
     const response = await this.query<{ inviteToDashboard: DashboardInvitation }>(mutation, { dashboardId, email });
-    return { data: response.data?.inviteToDashboard, status: 201 };
+    return { data: response.data?.inviteToDashboard, error: response.error, status: response.status || 201 };
   }
 
   async acceptInvitation(invitationId: string): Promise<ApiResponse<void>> {
@@ -344,8 +401,8 @@ export class GraphQLDataSource implements DataSource {
         acceptInvitation(invitationId: $invitationId)
       }
     `;
-    await this.query(mutation, { invitationId });
-    return { data: undefined, status: 200 };
+    const response = await this.query(mutation, { invitationId });
+    return { data: undefined, error: response.error, status: response.status || 200 };
   }
 
   async rejectInvitation(invitationId: string): Promise<ApiResponse<void>> {
@@ -354,7 +411,7 @@ export class GraphQLDataSource implements DataSource {
         rejectInvitation(invitationId: $invitationId)
       }
     `;
-    await this.query(mutation, { invitationId });
-    return { data: undefined, status: 200 };
+    const response = await this.query(mutation, { invitationId });
+    return { data: undefined, error: response.error, status: response.status || 200 };
   }
 }

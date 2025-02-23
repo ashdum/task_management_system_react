@@ -1,25 +1,23 @@
 // src/services/data/restDataSource.ts
-// REST implementation of DataSource using apiClient for HTTP requests
-
 import { DataSource } from './types';
 import { ApiResponse, AuthResponse, Dashboard, DashboardInvitation, Card, Column } from '../../types';
 import ApiClient from '../api/apiClient';
 
 export class RestDataSource implements DataSource {
   async login(email: string, password: string): Promise<ApiResponse<AuthResponse>> {
-    const response = await ApiClient.post<{ accessToken: string; refreshToken: string }>('/auth/login', { email, password });
+    const response = await ApiClient.post<AuthResponse>('/auth/login', { email, password });
     if (response.data) {
       ApiClient.setAuthToken(response.data.accessToken);
     }
-    return response as ApiResponse<AuthResponse>;
+    return response;
   }
 
   async register(email: string, password: string, fullName: string): Promise<ApiResponse<AuthResponse>> {
-    const response = await ApiClient.post<{ accessToken: string; refreshToken: string }>('/auth/register', { email, password, fullName });
+    const response = await ApiClient.post<AuthResponse>('/auth/register', { email, password, fullName });
     if (response.data) {
       ApiClient.setAuthToken(response.data.accessToken);
     }
-    return response as ApiResponse<AuthResponse>;
+    return response;
   }
 
   async logout(): Promise<ApiResponse<any>> {
@@ -28,8 +26,12 @@ export class RestDataSource implements DataSource {
     return response;
   }
 
-  async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<ApiResponse<any>> {
-    return ApiClient.put('/users/changePassword', { userId, oldPassword, newPassword });
+  async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<ApiResponse<AuthResponse>> {
+    const response = await ApiClient.post<AuthResponse>('/auth/change-password', { userId, oldPassword, newPassword });
+    if (response.data) {
+      ApiClient.setAuthToken(response.data.accessToken);
+    }
+    return response;
   }
 
   async getDashboards(): Promise<ApiResponse<Dashboard[]>> {
@@ -65,7 +67,7 @@ export class RestDataSource implements DataSource {
   }
 
   async createColumn(dashboardId: string, title: string): Promise<ApiResponse<Column>> {
-    return ApiClient.post<Column>('/columns', { dashboardId, title }); // Обновлен endpoint
+    return ApiClient.post<Column>('/columns', { dashboardId, title });
   }
 
   async updateColumn(dashboardId: string, columnId: string, data: Partial<Column>): Promise<ApiResponse<Column>> {
@@ -81,7 +83,7 @@ export class RestDataSource implements DataSource {
   }
 
   async createCard(dashboardId: string, columnId: string, title: string): Promise<ApiResponse<Card>> {
-    return ApiClient.post<Card>('/cards', { dashboardId, columnId, title }); // Обновлен endpoint
+    return ApiClient.post<Card>('/cards', { dashboardId, columnId, title });
   }
 
   async updateCard(dashboardId: string, columnId: string, cardId: string, data: Partial<Card>): Promise<ApiResponse<Card>> {
@@ -94,5 +96,23 @@ export class RestDataSource implements DataSource {
 
   async moveCard(dashboardId: string, fromColumnId: string, toColumnId: string, cardId: string, newIndex: number): Promise<ApiResponse<void>> {
     return ApiClient.put<void>(`/cards/${cardId}/move`, { dashboardId, fromColumnId, toColumnId, newIndex });
+  }
+
+  // Метод для Google OAuth
+  async googleLogin(credential: string): Promise<ApiResponse<AuthResponse>> {
+    const response = await ApiClient.post<AuthResponse>('/auth/google', { credential });
+    if (response.data) {
+      ApiClient.setAuthToken(response.data.accessToken);
+    }
+    return response;
+  }
+
+  // Метод для GitHub OAuth
+  async githubCallback(code: string): Promise<ApiResponse<AuthResponse>> {
+    const response = await ApiClient.post<AuthResponse>('/auth/github/callback', { code });
+    if (response.data) {
+      ApiClient.setAuthToken(response.data.accessToken);
+    }
+    return response;
   }
 }

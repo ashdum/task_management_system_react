@@ -1,6 +1,4 @@
 // src/services/data/localDataSource.ts
-// LocalDataSource implementation using storageManager for testing
-
 import { storageManager } from '../storage/storageManager';
 import { v4 as uuidv4 } from 'uuid';
 import type {
@@ -15,23 +13,12 @@ import type {
 import { DataSource } from './types';
 
 export class LocalDataSource implements DataSource {
-  // Login implementation using localStorage as user storage
   async login(email: string, password: string): Promise<ApiResponse<AuthResponse>> {
     await storageManager.simulateLatency();
-    const usersStr = localStorage.getItem('users');
-    const users: User[] = usersStr ? JSON.parse(usersStr) : [];
-    const user = users.find(u => u.email === email);
-    if (!user) {
-      return {
-        error: {
-          message: 'User not found',
-          code: 'NOT_FOUND',
-          status: 404,
-        },
-      };
-    }
-    const storedPassword = localStorage.getItem(`password_${user.id}`);
-    if (storedPassword !== password) {
+    const mockEmail = 'example@example.com';
+    const mockPassword = 'Example 123!';
+
+    if (email !== mockEmail || password !== mockPassword) {
       return {
         error: {
           message: 'Invalid credentials',
@@ -40,47 +27,50 @@ export class LocalDataSource implements DataSource {
         },
       };
     }
-    localStorage.setItem('mockUser', JSON.stringify(user));
 
-    // For demo purposes, using static tokens
-    // Generate access token (expires in 1 hour) and refresh token (expires in 7 days)
-    const accessToken = this.generateToken(user, 3600);
-    const refreshToken = this.generateToken(user, 604800);
+    const mockUser: User = {
+      id: 'local-' + uuidv4(),
+      email: mockEmail,
+      fullName: 'Jon Smith',
+      createdAt: new Date().toISOString(),
+    };
 
-    const authResponse: AuthResponse = { ...user, accessToken: accessToken, refreshToken };
-    return { data: authResponse, status: 201 };
+    const accessToken = this.generateToken(mockUser, 3600); // 1 час
+    const refreshToken = this.generateToken(mockUser, 604800); // 7 дней
+
+    const authResponse: AuthResponse = { ...mockUser, accessToken, refreshToken };
+    localStorage.setItem('mockUser', JSON.stringify(mockUser));
+    return { data: authResponse, status: 200 };
   }
 
-  // Register implementation: creates new user and generates tokens
   async register(email: string, password: string, fullName: string): Promise<ApiResponse<AuthResponse>> {
     await storageManager.simulateLatency();
-    const usersStr = localStorage.getItem('users');
-    const users: User[] = usersStr ? JSON.parse(usersStr) : [];
-    if (users.find(u => u.email === email)) {
+    const mockEmail = 'example@example.com';
+    const mockFullName = 'Jon Smith';
+    const mockPassword = 'Example 123!';
+
+    if (email !== mockEmail || password !== mockPassword || fullName !== mockFullName) {
       return {
         error: {
-          message: 'User already exists',
-          code: 'CONFLICT',
-          status: 409,
+          message: 'Invalid registration data for local mode',
+          code: 'VALIDATION_ERROR',
+          status: 400,
         },
       };
     }
-    const newUser: User = {
-      id: uuidv4(),
-      email,
-      fullName,
+
+    const mockUser: User = {
+      id: 'local-' + uuidv4(),
+      email: mockEmail,
+      fullName: mockFullName,
       createdAt: new Date().toISOString(),
     };
-    users.push(newUser);
-    localStorage.setItem('users', JSON.stringify(users));
-    localStorage.setItem(`password_${newUser.id}`, password);
-    localStorage.setItem('mockUser', JSON.stringify(newUser));
 
-    // Generate access token (expires in 1 hour) and refresh token (expires in 7 days)
-    const accessToken = this.generateToken(newUser, 3600);
-    const refreshToken = this.generateToken(newUser, 604800);
+    const accessToken = this.generateToken(mockUser, 3600); // 1 час
+    const refreshToken = this.generateToken(mockUser, 604800); // 7 дней
 
-    const authResponse: AuthResponse = { ...newUser, accessToken: accessToken, refreshToken };
+    const authResponse: AuthResponse = { ...mockUser, accessToken, refreshToken };
+    localStorage.setItem('mockUser', JSON.stringify(mockUser));
     return { data: authResponse, status: 201 };
   }
 
@@ -90,19 +80,28 @@ export class LocalDataSource implements DataSource {
     return { data: null, status: 200 };
   }
 
-  async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<ApiResponse<any>> {
+  async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<ApiResponse<AuthResponse>> {
     await storageManager.simulateLatency();
-    const users: User[] = JSON.parse(localStorage.getItem('users') || '[]');
-    const user = users.find(u => u.id === userId);
-    if (!user) {
-      return { error: { message: 'User not found', code: 'NOT_FOUND', status: 404 } };
+    const mockEmail = 'example@example.com';
+    const mockPassword = 'Example 123!';
+
+    if (oldPassword !== mockPassword) {
+      return { error: { message: 'Old password does not match', code: 'INVALID_PASSWORD', status: 401 } };
     }
-    const storedPassword = localStorage.getItem(`password_${userId}`);
-    if (storedPassword !== oldPassword) {
-      return { error: { message: 'Old password does not match', code: 'INVALID_PASSWORD', status: 400 } };
-    }
-    localStorage.setItem(`password_${userId}`, newPassword);
-    return { data: { success: true }, status: 200 };
+
+    const mockUser: User = {
+      id: userId || 'local-' + uuidv4(),
+      email: mockEmail,
+      fullName: 'Jon Smith',
+      createdAt: new Date().toISOString(),
+    };
+
+    const accessToken = this.generateToken(mockUser, 3600); // 1 час
+    const refreshToken = this.generateToken(mockUser, 604800); // 7 дней
+
+    const authResponse: AuthResponse = { ...mockUser, accessToken, refreshToken };
+    localStorage.setItem('mockUser', JSON.stringify(mockUser));
+    return { data: authResponse, status: 200 };
   }
 
   async getDashboards(): Promise<ApiResponse<Dashboard[]>> {
@@ -162,7 +161,7 @@ export class LocalDataSource implements DataSource {
     const dashboard: Dashboard = {
       id: `dashboard_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       title: title.trim(),
-      ownerIds: [userId],
+      ownerIds: [userId || currentUser.id],
       members: [currentUser],
       createdAt: new Date().toISOString(),
       columns: [
@@ -546,7 +545,48 @@ export class LocalDataSource implements DataSource {
     return { error: { message: 'Invitation not found', code: 'NOT_FOUND', status: 404 } };
   }
 
-  generateToken(user: User, expiresInSeconds: number): string {
+  // Новые методы для имитации Google и GitHub OAuth в локальном режиме
+  async googleLogin(credential: string): Promise<ApiResponse<AuthResponse>> {
+    await storageManager.simulateLatency();
+    const mockEmail = 'example@example.com';
+    const mockFullName = 'Jon Smith';
+
+    const mockUser: User = {
+      id: 'google-local-' + uuidv4(),
+      email: mockEmail,
+      fullName: mockFullName,
+      createdAt: new Date().toISOString(),
+    };
+
+    const accessToken = this.generateToken(mockUser, 3600); // 1 час
+    const refreshToken = this.generateToken(mockUser, 604800); // 7 дней
+
+    const authResponse: AuthResponse = { ...mockUser, accessToken, refreshToken };
+    localStorage.setItem('mockUser', JSON.stringify(mockUser));
+    return { data: authResponse, status: 200 };
+  }
+
+  async githubCallback(code: string): Promise<ApiResponse<AuthResponse>> {
+    await storageManager.simulateLatency();
+    const mockEmail = 'example@example.com';
+    const mockFullName = 'Jon Smith';
+
+    const mockUser: User = {
+      id: 'github-local-' + uuidv4(),
+      email: mockEmail,
+      fullName: mockFullName,
+      createdAt: new Date().toISOString(),
+    };
+
+    const accessToken = this.generateToken(mockUser, 3600); // 1 час
+    const refreshToken = this.generateToken(mockUser, 604800); // 7 дней
+
+    const authResponse: AuthResponse = { ...mockUser, accessToken, refreshToken };
+    localStorage.setItem('mockUser', JSON.stringify(mockUser));
+    return { data: authResponse, status: 200 };
+  }
+
+  private generateToken(user: User, expiresInSeconds: number): string {
     const header = { alg: 'HS256', typ: 'JWT' };
     const now = Math.floor(Date.now() / 1000);
     const payload = {
@@ -554,7 +594,7 @@ export class LocalDataSource implements DataSource {
       email: user.email,
       exp: now + expiresInSeconds,
       iat: now,
-      user, // embedding the whole user object
+      user, // Embedding the whole user object
     };
     const encodedHeader = btoa(JSON.stringify(header));
     const encodedPayload = btoa(JSON.stringify(payload));

@@ -1,5 +1,6 @@
+// src/components/layout/Header.tsx
 import React from 'react';
-import { LogOut, Settings, User as UserIcon } from 'lucide-react';
+import { LogOut, Settings, User as UserIcon, Eye, EyeOff, X } from 'lucide-react';
 import { User } from '../../types';
 import { useNavigate } from 'react-router-dom';
 import authService from '../../services/auth/authService';
@@ -15,6 +16,9 @@ const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
   const [oldPassword, setOldPassword] = React.useState('');
   const [newPassword, setNewPassword] = React.useState('');
   const [confirmPassword, setConfirmPassword] = React.useState('');
+  const [showOldPassword, setShowOldPassword] = React.useState(false);
+  const [showNewPassword, setShowNewPassword] = React.useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
@@ -31,34 +35,34 @@ const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
     setError(null);
     setSuccess(false);
 
-    // Validate passwords
-    if (newPassword.length < 6) {
-      setError('New password must be at least 6 characters long');
+    if (!oldPassword.trim() || !newPassword.trim() || !confirmPassword.trim()) {
+      setError('Все поля пароля должны быть заполнены');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError('New passwords do not match');
+      setError('Новые пароли не совпадают');
       return;
     }
 
     if (oldPassword === newPassword) {
-      setError('New password must be different from the current password');
+      setError('Новый пароль должен отличаться от текущего');
       return;
     }
 
     try {
       setLoading(true);
-      await authService.changePassword(user.id, oldPassword, newPassword);
+      const updatedUser = await authService.changePassword(user.id, oldPassword, newPassword);
       setSuccess(true);
       setOldPassword('');
       setNewPassword('');
       setConfirmPassword('');
       setTimeout(() => {
         setShowSettings(false);
+        setSuccess(false);
       }, 2000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to change password');
+      setError(err instanceof Error ? err.message : 'Не удалось сменить пароль');
     } finally {
       setLoading(false);
     }
@@ -107,14 +111,14 @@ const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
                   className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full"
                 >
                   <Settings size={16} className="mr-2" />
-                  Settings
+                  Настройки
                 </button>
                 <button
                   onClick={handleSignOut}
                   className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full"
                 >
                   <LogOut size={16} className="mr-2" />
-                  Sign Out
+                  Выйти
                 </button>
               </div>
             )}
@@ -126,12 +130,12 @@ const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-8 max-w-md w-full">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold">Settings</h2>
+              <h2 className="text-2xl font-bold">Настройки</h2>
               <button
                 onClick={() => setShowSettings(false)}
                 className="text-gray-500 hover:text-gray-700"
               >
-                ✕
+                <X size={24} />
               </button>
             </div>
 
@@ -143,7 +147,10 @@ const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
                   </span>
                 </div>
               </div>
-              <p className="text-center text-gray-600">{user.email}</p>
+              <div className="text-center text-gray-600">
+                <p><strong>Email:</strong> {user.email}</p>
+                <p><strong>Полное имя:</strong> {user.fullName || 'Не указано'}</p>
+              </div>
             </div>
 
             <form onSubmit={handleChangePassword} className="space-y-4">
@@ -155,59 +162,80 @@ const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
 
               {success && (
                 <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded">
-                  Password changed successfully!
+                  Пароль успешно изменен!
                 </div>
               )}
 
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Current Password
+                  Текущий пароль
                 </label>
                 <input
-                  type="password"
+                  type={showOldPassword ? 'text' : 'password'}
                   value={oldPassword}
                   onChange={(e) => setOldPassword(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   required
-                  minLength={6}
+                  disabled={loading}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowOldPassword(!showOldPassword)}
+                  className="absolute right-3 top-[50%] -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                >
+                  {showOldPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
               </div>
 
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  New Password
+                  Новый пароль
                 </label>
                 <input
-                  type="password"
+                  type={showNewPassword ? 'text' : 'password'}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   required
-                  minLength={6}
+                  disabled={loading}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-3 top-[50%] -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                >
+                  {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
               </div>
 
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Confirm New Password
+                  Подтвердите новый пароль
                 </label>
                 <input
-                  type="password"
+                  type={showConfirmPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   required
-                  minLength={6}
+                  disabled={loading}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-[50%] -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                >
+                  {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium text-lg"
               >
                 <UserIcon size={16} />
-                {loading ? 'Changing Password...' : 'Change Password'}
+                {loading ? 'Смена пароля...' : 'Сменить пароль'}
               </button>
             </form>
           </div>
