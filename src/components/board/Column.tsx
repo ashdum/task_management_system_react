@@ -1,10 +1,11 @@
+// src\components\board\Column.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
 import { Archive, MoreHorizontal, Plus, Trash2 } from 'lucide-react';
-import { Column as ColumnType } from '../../types';
+import { Column as ColumnType } from '../../services/data/interface/dataTypes';
 import Card from './Card';
 import NewCardModal from '../modals/NewCardModal';
-import { useBoardStore } from '../../store.ts';
+import { useBoardStore } from './useBoard';
 
 interface Props {
   column: ColumnType;

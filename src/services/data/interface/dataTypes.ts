@@ -1,5 +1,4 @@
-
-// User related types
+// src\services\data\interface\dataTypes.ts
 export interface User {
   id: string;
   email: string;

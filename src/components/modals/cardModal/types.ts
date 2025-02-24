@@ -1,20 +1,6 @@
 // File: src/components/modals/cardModal/types.ts
 // Define types used in CardModal components
 
-export interface Card {
-    id: string;
-    title: string;
-    description?: string;
-    images?: string[];
-    members?: CardMember[];
-    labels?: Label[];
-    checklists?: Checklist[];
-    comments?: Comment[];
-    attachments?: Attachment[];
-    dueDate?: string;
-    number: number;
-    updatedAt?: string;
-  }
   
   export interface User {
     id: string;

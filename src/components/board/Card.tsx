@@ -1,7 +1,8 @@
+// src\components\board\Card.tsx
 import React, { useState } from 'react';
 import { Draggable } from '@hello-pangea/dnd';
 import { Image as ImageIcon } from 'lucide-react';
-import { Card as CardType } from '../../types';
+import { Card as CardType } from '../../services/data/interface/dataTypes';
 import CardModal from '../modals/cardModal';
 
 interface Props {

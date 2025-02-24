@@ -1,7 +1,7 @@
 // src/components/layout/Header.tsx
 import React from 'react';
 import { LogOut, Settings, User as UserIcon, Eye, EyeOff, X } from 'lucide-react';
-import { User } from '../../types';
+import { User } from '../../services/data/interface/dataTypes';
 import { useNavigate } from 'react-router-dom';
 import authService from '../../services/auth/authService';
 import FormField from '../common/FormField'; // Импортируем FormField для подсказок

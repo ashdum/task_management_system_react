@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import Dashboard from './components/board/Dashboard';
-import { User } from './types';
+import { User } from './services/data/interface/dataTypes';
 import authService from './services/auth/authService';
 import GitHubCallbackHandler from './components/auth/GitHubCallbackHandler'; // Импортируем новый компонент
 

@@ -2,7 +2,7 @@
 // Manager for localStorage with simulated latency
 
 import { config } from '../../config';
-import type { Dashboard } from '../../types';
+import type { Dashboard } from '../data/interface/dataTypes';
 
 interface StorageData {
   dashboards: Dashboard[];

@@ -1,3 +1,4 @@
+// src\components\layout\Footer.tsx
 import React from 'react';
 import { Github, Gitlab, Linkedin, FileText, Phone, Mail } from 'lucide-react';
 

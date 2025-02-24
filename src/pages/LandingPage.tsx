@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Layout, Users, Clock } from 'lucide-react';
 import AuthModal from '../components/auth/AuthModal';
 import Footer from '../components/layout/Footer';
-import { User } from '../types';
+import { User } from '../services/data/interface/dataTypes';
 
 interface Props {
   setUser: (user: User | null) => void;

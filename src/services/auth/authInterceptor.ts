@@ -3,7 +3,7 @@
 
 import { tokenManager } from './tokenManager';
 import { config } from '../../config';
-import type { ApiResponse } from '../../types';
+import type { ApiResponse } from '../data/interface/dataTypes';
 
 class AuthInterceptor {
   private static instance: AuthInterceptor;

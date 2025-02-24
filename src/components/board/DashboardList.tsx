@@ -1,7 +1,8 @@
+// src\components\board\DashboardList.tsx
 import React, { useState, useEffect } from 'react';
 import { Plus, Layout, Users, Shield, Clock, Search, Grid, List, BarChart3 } from 'lucide-react';
-import { useBoardStore } from '../../store.ts';
-import { Dashboard } from '../../types';
+import { useBoardStore } from './useBoard';
+import { Dashboard } from '../../services/data/interface/dataTypes';
 import DashboardStats from '../statistics/DashboardStats';
 import authService from '../../services/auth/authService';
 
@@ -24,7 +25,7 @@ const NewDashboardForm = ({ onSubmit }: { onSubmit: (title: string) => void }) =
     setLoading(true);
     setError(null);
     try {
-      await onSubmit(newDashboardTitle.trim());
+      onSubmit(newDashboardTitle.trim());
       setNewDashboardTitle('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Не удалось создать дашборд');
@@ -98,7 +99,7 @@ const DashboardList: React.FC<Props> = ({ onDashboardSelect }) => {
 
   const ownedDashboards = React.useMemo(() => 
     filteredDashboards.filter(
-      dashboard => currentUser && dashboard.ownerIds?.includes(currentUser.id)
+      dashboard => currentUser && dashboard?.ownerIds?.includes(currentUser.id)
     ),
     [filteredDashboards, currentUser]
   );
@@ -107,8 +108,8 @@ const DashboardList: React.FC<Props> = ({ onDashboardSelect }) => {
     filteredDashboards.filter(
       dashboard => 
         currentUser && 
-        !dashboard.ownerIds?.includes(currentUser.id) && 
-        dashboard.members?.some(member => member?.id === currentUser.id)
+        !dashboard?.ownerIds?.includes(currentUser.id) && 
+        dashboard?.members?.some(member => member?.id === currentUser.id)
     ),
     [filteredDashboards, currentUser]
   );

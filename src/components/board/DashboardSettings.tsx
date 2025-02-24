@@ -1,8 +1,8 @@
 // src/components/board/DashboardSettings.tsx
 import React, { useState } from 'react';
 import { Settings, Image as ImageIcon, X, UserPlus, Mail, Shield, Lock } from 'lucide-react';
-import { Dashboard, User } from '../../types';
-import { useBoardStore } from '../../store';
+import { Dashboard, User } from '../../services/data/interface/dataTypes';
+import { useBoardStore } from './useBoard';
 import { PREDEFINED_BACKGROUNDS, BackgroundConfig } from '../../resources/backgrounds';
 import authService from '../../services/auth/authService';
 
@@ -20,10 +20,6 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ dashboard, onUpda
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteSuccess, setInviteSuccess] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<BackgroundCategory>('gradients');
-  const [oldPassword, setOldPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [passwordSuccess, setPasswordSuccess] = useState(false);
   const { inviteToDashboard } = useBoardStore();
 
   const currentUser = user || authService.getCurrentUser(); // Fallback на authService, если user не передан
@@ -48,31 +44,6 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ dashboard, onUpda
     }
   };
 
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setPasswordError(null);
-    setPasswordSuccess(false);
-
-    if (!currentUser) {
-      setPasswordError('Пользователь не авторизован');
-      return;
-    }
-
-    if (!oldPassword.trim() || !newPassword.trim()) {
-      setPasswordError('Пожалуйста, заполните оба поля пароля');
-      return;
-    }
-
-    try {
-      await authService.changePassword(currentUser.id, oldPassword, newPassword);
-      setOldPassword('');
-      setNewPassword('');
-      setPasswordSuccess(true);
-      setTimeout(() => setPasswordSuccess(false), 3000);
-    } catch (error) {
-      setPasswordError(error instanceof Error ? error.message : 'Не удалось сменить пароль');
-    }
-  };
 
   const getUserInitials = (email: string | undefined) => {
     if (!email) return '??';
@@ -159,48 +130,6 @@ const DashboardSettings: React.FC<DashboardSettingsProps> = ({ dashboard, onUpda
                 </div>
               </div>
 
-              {/* Change Password Section */}
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
-                  <Lock size={16} />
-                  Смена пароля
-                </h3>
-                <form onSubmit={handleChangePassword} className="space-y-3">
-                  <div>
-                    <input
-                      type="password"
-                      value={oldPassword}
-                      onChange={(e) => setOldPassword(e.target.value)}
-                      placeholder="Старый пароль"
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      autoComplete="current-password"
-                    />
-                  </div>
-                  <div>
-                    <input
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Новый пароль"
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      autoComplete="new-password"
-                    />
-                  </div>
-                  {passwordError && (
-                    <p className="text-sm text-red-600">{passwordError}</p>
-                  )}
-                  {passwordSuccess && (
-                    <p className="text-sm text-green-600">Пароль успешно изменен!</p>
-                  )}
-                  <button
-                    type="submit"
-                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Lock size={16} />
-                    Сменить пароль
-                  </button>
-                </form>
-              </div>
 
               {/* Invite Members Section */}
               <div>

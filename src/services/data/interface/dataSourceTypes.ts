@@ -1,4 +1,4 @@
-// src/services/data/types.ts
+// src\services\data\interface\dataSourceTypes.ts
 import { 
   ApiResponse, 
   AuthResponse, 
@@ -6,7 +6,7 @@ import {
   DashboardInvitation, 
   Card, 
   Column 
-} from '../../types';
+} from './dataTypes';
 
 export interface DataSource {
   // Auth

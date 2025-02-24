@@ -1,9 +1,10 @@
+// src\components\statistics\DashboardStats.tsx
 import React, { useState } from 'react';
 import { 
   BarChart3, X, Users, Layout,
   CheckSquare, MessageSquare, 
 } from 'lucide-react';
-import { Dashboard, DashboardStats as DashboardStatsType, StatFilter } from '../../types';
+import { Dashboard, DashboardStats as DashboardStatsType, StatFilter } from '../../services/data/interface/dataTypes';
 
 interface DashboardStatsProps {
   dashboard: Dashboard;

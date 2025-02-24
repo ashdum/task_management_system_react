@@ -1,7 +1,7 @@
 // src/components/auth/AuthModal.tsx
 import React from 'react';
 import { X } from 'lucide-react';
-import { User } from '../../types';
+import { User } from '../../services/data/interface/dataTypes';
 import EmailAuthForm from './EmailAuthForm';
 import OAuthButtons from './OAuthButtons';
 import useAuthModal from './useAuthModal';

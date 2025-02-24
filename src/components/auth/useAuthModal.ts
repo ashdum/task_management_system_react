@@ -8,7 +8,7 @@ import {
   UserNotFoundError,
   ValidationError,
 } from '../../lib/authErrors';
-import { User } from '../../types';
+import { User } from '../../services/data/interface/dataTypes';
 import { useNavigate } from 'react-router-dom';
 import { config } from '../../config';
 

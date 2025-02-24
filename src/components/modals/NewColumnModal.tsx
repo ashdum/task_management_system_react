@@ -1,3 +1,4 @@
+// src\components\modals\NewColumnModal.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 

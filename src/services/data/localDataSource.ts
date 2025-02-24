@@ -9,28 +9,17 @@ import type {
   DashboardInvitation,
   ApiResponse,
   AuthResponse,
-} from '../../types';
-import { DataSource } from './types';
+} from './interface/dataTypes';
+import { DataSource } from './interface/dataSourceTypes';
 
 export class LocalDataSource implements DataSource {
   async login(email: string, password: string): Promise<ApiResponse<AuthResponse>> {
     await storageManager.simulateLatency();
-    const mockEmail = 'example@example.com';
-    const mockPassword = 'Example 123!';
-
-    if (email !== mockEmail || password !== mockPassword) {
-      return {
-        error: {
-          message: 'Invalid credentials',
-          code: 'AUTH_ERROR',
-          status: 401,
-        },
-      };
-    }
+  
 
     const mockUser: User = {
       id: 'local-' + uuidv4(),
-      email: mockEmail,
+      email: email,
       fullName: 'Jon Smith',
       createdAt: new Date().toISOString(),
     };
@@ -45,24 +34,11 @@ export class LocalDataSource implements DataSource {
 
   async register(email: string, password: string, fullName: string): Promise<ApiResponse<AuthResponse>> {
     await storageManager.simulateLatency();
-    const mockEmail = 'example@example.com';
-    const mockFullName = 'Jon Smith';
-    const mockPassword = 'Example 123!';
-
-    if (email !== mockEmail || password !== mockPassword || fullName !== mockFullName) {
-      return {
-        error: {
-          message: 'Invalid registration data for local mode',
-          code: 'VALIDATION_ERROR',
-          status: 400,
-        },
-      };
-    }
 
     const mockUser: User = {
       id: 'local-' + uuidv4(),
-      email: mockEmail,
-      fullName: mockFullName,
+      email: email,
+      fullName: fullName,
       createdAt: new Date().toISOString(),
     };
 

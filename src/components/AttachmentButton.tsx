@@ -1,3 +1,4 @@
+// src\components\AttachmentButton.tsx
 import React from 'react';
 import { Paperclip } from 'lucide-react';
 

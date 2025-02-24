@@ -1,3 +1,4 @@
+// src\components\common\InfoTooltip.tsx
 import React, { useState } from 'react';
 import { Info } from 'lucide-react';
 

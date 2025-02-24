@@ -1,16 +1,16 @@
 // src/services/api/graphqlClient.ts
 // GraphQL client using fetch with token from apiClient
 
-import { ApiResponse } from '../../types';
-import ApiClient from './apiClient';
+import { ApiResponse } from '../data/interface/dataTypes';
 import { config } from '../../config';
+import apiClientInstance from './apiClient';
 
 // Retrieve GraphQL endpoint from unified config
 const GRAPHQL_ENDPOINT = config.getApiConfig().endpoints.graphql;
 
 export async function executeGraphQLQuery<T>(query: string, variables?: any): Promise<ApiResponse<T>> {
   try {
-    const token = ApiClient.getAuthToken();
+    const token = apiClientInstance.getAuthToken();
     // Build the full URL using baseUrl and GraphQL endpoint from config
     const url = `${config.getApiConfig().baseUrl}${GRAPHQL_ENDPOINT}`;
     const response = await fetch(url, {

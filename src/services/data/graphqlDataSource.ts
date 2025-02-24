@@ -1,7 +1,7 @@
 // src/services/data/graphqlDataSource.ts
-import { ApiResponse, AuthResponse, Dashboard, DashboardInvitation, Card, Column } from '../../types';
+import { ApiResponse, AuthResponse, Dashboard, DashboardInvitation, Card, Column } from './interface/dataTypes';
 import { executeGraphQLQuery } from '../api/graphqlClient';
-import { DataSource } from './types';
+import { DataSource } from './interface/dataSourceTypes';
 
 export class GraphQLDataSource implements DataSource {
   private query<T, R = T>(query: string, variables?: Record<string, any>): Promise<ApiResponse<R>> {

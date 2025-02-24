@@ -1,10 +1,10 @@
-// src/store.ts
+// src\components\board\useBoard.ts
 import { create } from 'zustand';
-import { dataSource } from './services/data/dataSource'; // use dataSource facade
-import { Column, Card, Dashboard } from './types';
-import authService from './services/auth/authService';
+import { dataSource } from '../../services/data/dataSource'; // use dataSource facade
+import { Column, Card, Dashboard } from '../../services/data/interface/dataTypes';
+import authService from '../../services/auth/authService';
 
-interface BoardState {
+export interface BoardState {
   dashboards: Dashboard[];
   currentDashboard: Dashboard | null;
   columns: Column[];
@@ -35,9 +35,11 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   error: null,
 
   loadDashboards: async () => {
+    console.log('loadDashboards called at', new Date().toISOString());
     try {
       set({ loading: true, error: null });
       const response = await dataSource.getDashboards();
+      console.log('loadDashboards response received at', new Date().toISOString());
       if (response.error) throw new Error(response.error.message);
       set({ dashboards: response.data ?? [], loading: false });
     } catch (error) {
@@ -65,9 +67,11 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   },
 
   setCurrentDashboard: async (dashboardId: string) => {
+    console.log('setCurrentDashboard called with', dashboardId, 'at', new Date().toISOString());
     try {
       set({ loading: true, error: null });
       const response = await dataSource.getDashboards();
+      console.log('setCurrentDashboard response received at', new Date().toISOString());
       if (response.error) throw new Error(response.error.message);
       const dashboards = response.data ?? [];
       const currentDashboard = dashboards.find(d => d.id === dashboardId);

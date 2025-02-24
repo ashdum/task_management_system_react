@@ -1,6 +1,7 @@
+// src\components\modals\ChecklistModal.tsx
 import React from 'react';
 import { X } from 'lucide-react';
-import { Label } from '../../types';
+import { Label } from '../../services/data/interface/dataTypes';
 
 interface LabelsModalProps {
   isOpen: boolean;

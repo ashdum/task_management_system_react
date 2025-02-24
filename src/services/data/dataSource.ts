@@ -4,7 +4,7 @@
 import { LocalDataSource } from './localDataSource';
 import { RestDataSource } from './restDataSource';
 import { GraphQLDataSource } from './graphqlDataSource';
-import type { DataSource } from './types';
+import type { DataSource } from './interface/dataSourceTypes';
 import { config, DataSourceType } from '../../config';
 
 class DataSourceFactory {

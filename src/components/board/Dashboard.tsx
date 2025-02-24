@@ -2,12 +2,12 @@
 import React, { useState } from 'react';
 import { DragDropContext, Droppable, DropResult } from '@hello-pangea/dnd';
 import { Plus, ArrowLeft, Search, BarChart3 } from 'lucide-react';
-import { useBoardStore } from '../../store.ts';
+import { useBoardStore } from './useBoard';
 import Column from './Column';
 import DashboardList from './DashboardList';
 import Footer from '../layout/Footer';
 import Header from '../layout/Header';
-import { User } from '../../types';
+import { User } from '../../services/data/interface/dataTypes';
 import NewColumnModal from '../modals/NewColumnModal';
 import DashboardSettings from './DashboardSettings';
 import DashboardStats from '../statistics/DashboardStats';

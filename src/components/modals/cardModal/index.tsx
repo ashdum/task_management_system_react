@@ -8,8 +8,8 @@ import CommentSection from  './CommentSection';
 import ModalSidebar from './ModalSidebar';
 import { useOutsideClick, useImagePaste } from './hooks';
 import { Label, Checklist as ChecklistType, Comment, CardMember, Attachment } from './types';
-import { Card } from '../../../types';
-import { useBoardStore } from '../../../store.ts';
+import { Card } from '../../../services/data/interface/dataTypes';
+import { useBoardStore } from '../../board/useBoard';
 import ModalHeader from './ModalHeader';
 import authService from '../../../services/auth/authService';
 

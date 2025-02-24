@@ -1,7 +1,7 @@
 // src/services/api/restClient.ts
 // REST client using fetch as alternative (if needed for DataSource REST)
 
-import { ApiResponse } from '../../types';
+import { ApiResponse } from '../data/interface/dataTypes';
 import { config } from '../../config';
 
 // Function to perform HTTP request with unified configuration

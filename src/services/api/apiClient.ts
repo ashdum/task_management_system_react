@@ -1,48 +1,64 @@
 // src/services/api/apiClient.ts
-// Axios client for REST requests with token management
-
-import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
-import { ApiResponse } from '../../types';
-import { config } from '../../config';
+import ky, { KyInstance, Options } from 'ky';
+import { ApiResponse } from '../data/interface/dataTypes';
 import { tokenManager } from '../auth/tokenManager';
+import { config } from '../../config';
 
+// Define ErrorResponse type to handle any JSON response
 interface ErrorResponse {
   message?: string;
   code?: string;
+  [key: string]: unknown; // Allow any additional properties from the server
 }
 
 class ApiClient {
   private static instance: ApiClient;
-  private axiosInstance: AxiosInstance;
+  private kyInstance: KyInstance;
 
   private constructor() {
     const apiConfig = config.getApiConfig();
 
-    this.axiosInstance = axios.create({
-      baseURL: apiConfig.baseUrl,
+    // Initialize Ky with base URL and timeout from config
+    this.kyInstance = ky.create({
+      prefixUrl: apiConfig.baseUrl,
       timeout: apiConfig.timeout,
       headers: {
         'Content-Type': 'application/json',
       },
-    });
-
-    // Request interceptor to attach Authorization header if token exists
-    this.axiosInstance.interceptors.request.use(
-      (requestConfig: InternalAxiosRequestConfig) => {
-        const accessToken = tokenManager.getTokens().accessToken;
-        if (accessToken) {
-          requestConfig.headers.Authorization = `Bearer ${accessToken}`;
-        }
-        return requestConfig;
+      hooks: {
+        beforeRequest: [
+          (request) => {
+            const accessToken = tokenManager.getTokens().accessToken;
+            if (accessToken) {
+              request.headers.set('Authorization', `Bearer ${accessToken}`);
+            }
+            return request;
+          },
+        ],
+        beforeError: [
+          async (error) => {
+            const { response } = error;
+            if (response) {
+              try {
+                const errorData: ErrorResponse = await response.json();
+                error.message = errorData.message || `HTTP error! status: ${response.status}`;
+                error.name = errorData.code || 'API_ERROR';
+              } catch {
+                error.message = `HTTP error! status: ${response.status}`;
+                error.name = 'API_ERROR';
+              }
+            } else if (error.name === 'TimeoutError') {
+              error.message = 'Таймаут запроса';
+              error.name = 'TIMEOUT';
+            } else if (!response) {
+              error.message = 'Ошибка сети. Проверьте ваше интернет-соединение.';
+              error.name = 'NETWORK_ERROR';
+            }
+            return error;
+          },
+        ],
       },
-      (error) => Promise.reject(error)
-    );
-
-    // Response interceptor for error handling
-    this.axiosInstance.interceptors.response.use(
-      (response) => response,
-      (error: AxiosError) => this.handleError(error)
-    );
+    });
   }
 
   public static getInstance(): ApiClient {
@@ -52,52 +68,55 @@ class ApiClient {
     return ApiClient.instance;
   }
 
-  async get<T>(endpoint: string, params?: Record<string, unknown>): Promise<ApiResponse<T>> {
+  private async handleRequest<T>(endpoint: string, options: Partial<Options> = {}): Promise<T> {
     try {
-      const response = await this.axiosInstance.get<T>(endpoint, { params });
-      return { data: response.data, status: response.status };
+      return await this.kyInstance(endpoint, options).json();
     } catch (error) {
-      return this.handleError(error as AxiosError);
+      throw this.handleError(error as any);
     }
+  }
+
+  async get<T>(endpoint: string, params?: Record<string, string | number | boolean>): Promise<ApiResponse<T>> {
+    const response = await this.handleRequest<T>(endpoint, {
+      method: 'get',
+      searchParams: params,
+    });
+    return { data: response, status: 200 };
   }
 
   async post<T>(endpoint: string, data: unknown): Promise<ApiResponse<T>> {
-    try {
-      const response = await this.axiosInstance.post<T>(endpoint, data);
-      return { data: response.data, status: response.status };
-    } catch (error) {8
-      return this.handleError(error as AxiosError);
-    }
+    const response = await this.handleRequest<T>(endpoint, {
+      method: 'post',
+      json: data,
+    });
+    return { data: response, status: 201 };
   }
 
   async put<T>(endpoint: string, data: unknown): Promise<ApiResponse<T>> {
-    try {
-      const response = await this.axiosInstance.put<T>(endpoint, data);
-      return { data: response.data, status: response.status };
-    } catch (error) {
-      return this.handleError(error as AxiosError);
-    }
+    const response = await this.handleRequest<T>(endpoint, {
+      method: 'put',
+      json: data,
+    });
+    return { data: response, status: 200 };
   }
 
   async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
-    try {
-      const response = await this.axiosInstance.delete<T>(endpoint);
-      return { data: response.data, status: response.status };
-    } catch (error) {
-      return this.handleError(error as AxiosError);
-    }
+    const response = await this.handleRequest<T>(endpoint, {
+      method: 'delete',
+    });
+    return { data: response, status: 200 };
   }
 
-  private handleError(error: AxiosError): ApiResponse<never> {
-    let message = 'Произошла непредвиденная ошибка';
+  private handleError(error: any): ApiResponse<never> {
+    let message = error.message || 'Произошла непредвиденная ошибка';
     let code = 'UNKNOWN_ERROR';
     const status = error.response?.status || 500;
 
-    if (error.response?.data) {
-      const errData = error.response.data as ErrorResponse;
+    if (error.response) {
+      const errData = error.response as unknown as ErrorResponse;
       message = errData.message || message;
       code = errData.code || code;
-    } else if (error.code === 'ECONNABORTED') {
+    } else if (error.name === 'TimeoutError') {
       message = 'Таймаут запроса';
       code = 'TIMEOUT';
     } else if (!error.response) {
@@ -123,7 +142,7 @@ class ApiClient {
 
   // Установить токен аутентификации (используется только для начальной настройки)
   setAuthToken(token: string) {
-    tokenManager.setTokens(token, tokenManager.getTokens().refreshToken || "");
+    tokenManager.setTokens(token, tokenManager.getTokens().refreshToken || '');
   }
 
   clearAuthToken() {
@@ -135,4 +154,5 @@ class ApiClient {
   }
 }
 
-export default ApiClient.getInstance();
+export const apiClientInstance = ApiClient.getInstance();
+export default apiClientInstance;

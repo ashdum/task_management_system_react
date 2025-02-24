@@ -1,5 +1,5 @@
 // src/services/auth/authService.ts
-import { ApiResponse, User, AuthResponse, Dashboard } from '../../types';
+import { ApiResponse, User, AuthResponse, Dashboard } from '../data/interface/dataTypes';
 import { tokenManager } from './tokenManager';
 import {
   AuthError,
@@ -15,7 +15,6 @@ import { DataSourceType, config } from '../../config';
 class AuthService {
   async signUp(email: string, fullName: string, password: string): Promise<User> {
     if (config.getDataSource() === DataSourceType.LOCAL) {
-      // Валидация для локального режима (если нужно)
       const emailErrors = validateEmail(email);
       if (emailErrors.length > 0) {
         throw new ValidationError(emailErrors[0]);
@@ -30,7 +29,7 @@ class AuthService {
       }
     }
 
-    const response: ApiResponse<AuthResponse> = await dataSource.register(email, password, fullName);
+    const response = await dataSource.register(email, password, fullName);
     if (response.error) {
       if (response.error.status === 401) {
         throw new AuthError('Пользователь с таким email уже существует');
