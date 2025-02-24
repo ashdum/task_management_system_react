@@ -16,7 +16,6 @@ const LandingPage: React.FC<Props> = ({ setUser }) => {
   const navigate = useNavigate();
 
   const handleAuthSuccess = (user: User) => {
-    console.log('handleAuthSuccess called with user:', user);
     setUser(user);
     navigate('/dashboard', { replace: true });
   };

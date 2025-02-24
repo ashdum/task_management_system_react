@@ -109,9 +109,7 @@ export class RestDataSource implements DataSource {
 
   // Метод для GitHub OAuth
   async githubCallback(code: string): Promise<ApiResponse<AuthResponse>> {
-    console.log('githubCallback code:', code);
     const response = await ApiClient.post<AuthResponse>('/auth/github/callback', { code });
-    console.log('githubCallback response:', response);
     if (response.data) {
       ApiClient.setAuthToken(response.data.accessToken);
     }
