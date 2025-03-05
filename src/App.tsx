@@ -89,6 +89,12 @@ function App() {
             user ? <Dashboard user={user} onSignOut={handleSignOut} /> : <Navigate to="/" replace />
           }
         />
+        <Route
+          path="/dashboard/:dashboardId"
+          element={
+            user ? <Dashboard user={user} onSignOut={handleSignOut} /> : <Navigate to="/" replace />
+          }
+        />
         <Route path="/auth/github/callback" element={<GitHubCallbackHandler />} />
       </Routes>
     </Router>

@@ -43,11 +43,11 @@ export class RestDataSource implements DataSource {
   }
 
   async createDashboard(title: string, userId: string): Promise<ApiResponse<Dashboard>> {
-    return ApiClient.post<Dashboard>('dashboards', { title, userId });
+    return ApiClient.post<Dashboard>('dashboards', { title, 'ownerIds': [userId] });
   }
 
   async updateDashboard(id: string, data: Partial<Dashboard>): Promise<ApiResponse<Dashboard>> {
-    return ApiClient.put<Dashboard>(`dashboards/${id}`, data);
+    return ApiClient.patch<Dashboard>(`dashboards/${id}`, data);
   }
 
   async deleteDashboard(id: string): Promise<ApiResponse<void>> {
@@ -55,7 +55,7 @@ export class RestDataSource implements DataSource {
   }
 
   async inviteToDashboard(dashboardId: string, email: string): Promise<ApiResponse<DashboardInvitation>> {
-    return ApiClient.post<DashboardInvitation>(`dashboards/${dashboardId}/invitations`, { email });
+    return ApiClient.post<DashboardInvitation>(`invitations`, { "dashboardId": dashboardId, "inviteeEmail": email });
   }
 
   async acceptInvitation(invitationId: string): Promise<ApiResponse<void>> {
@@ -79,7 +79,7 @@ export class RestDataSource implements DataSource {
   }
 
   async updateColumnOrder(dashboardId: string, columnIds: string[]): Promise<ApiResponse<void>> {
-    return ApiClient.put<void>(`dashboards/${dashboardId}/columns/order`, { columnIds });
+    return ApiClient.patch<void>(`columns/order`, { dashboardId, columnIds });
   }
 
   async createCard(dashboardId: string, columnId: string, title: string): Promise<ApiResponse<Card>> {
@@ -87,7 +87,7 @@ export class RestDataSource implements DataSource {
   }
 
   async updateCard(dashboardId: string, columnId: string, cardId: string, data: Partial<Card>): Promise<ApiResponse<Card>> {
-    return ApiClient.put<Card>(`cards/${cardId}`, { ...data, dashboardId, columnId });
+    return ApiClient.patch<Card>(`cards/${cardId}`, { ...data, dashboardId, columnId });
   }
 
   async deleteCard(dashboardId: string, columnId: string, cardId: string): Promise<ApiResponse<void>> {

@@ -99,6 +99,13 @@ class ApiClient {
     });
     return { data: response, status: 200 };
   }
+  async patch<T>(endpoint: string, data: unknown): Promise<ApiResponse<T>> {
+    const response = await this.handleRequest<T>(endpoint, {
+      method: 'patch',
+      json: data,
+    });
+    return { data: response, status: 200 };
+  }
 
   async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
     const response = await this.handleRequest<T>(endpoint, {

@@ -11,6 +11,7 @@ import { User } from '../../services/data/interface/dataTypes';
 import NewColumnModal from '../modals/NewColumnModal';
 import DashboardSettings from './DashboardSettings';
 import DashboardStats from '../statistics/DashboardStats';
+import { useParams, useNavigate } from 'react-router-dom';
 
 interface DashboardProps {
   user: User;
@@ -20,11 +21,11 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ user, onSignOut }) => {
   const [showDashboardList, setShowDashboardList] = useState(true);
   const [showStats, setShowStats] = useState(false);
-  const { 
-    columns, 
-    moveCard, 
-    addColumn, 
-    currentDashboard, 
+  const {
+    columns,
+    moveCard,
+    addColumn,
+    currentDashboard,
     setCurrentDashboard,
     updateColumnOrder,
     updateDashboard,
@@ -33,11 +34,23 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onSignOut }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredColumns, setFilteredColumns] = useState(columns || []);
 
+  const { dashboardId } = useParams<{ dashboardId?: string }>();
+  const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (dashboardId) {
+      setCurrentDashboard(dashboardId); // Загружаем дашборд по ID
+      setShowDashboardList(false); // Скрываем список
+    } else {
+      setShowDashboardList(true); // Показываем список, если нет ID
+    }
+  }, [dashboardId, setCurrentDashboard]);
+
   const canEditDashboard = currentDashboard?.ownerIds.includes(user.id) || false;
 
   React.useEffect(() => {
     if (!columns) return;
-    
+
     if (searchQuery.trim() === '') {
       setFilteredColumns(columns.filter(column => !column.is_archive));
       return;
@@ -64,6 +77,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onSignOut }) => {
   const handleDashboardSelect = (dashboardId: string) => {
     setCurrentDashboard(dashboardId);
     setShowDashboardList(false);
+    navigate(`/dashboard/${dashboardId}`); // Переходим на новый URL
   };
 
   const handleAddColumn = (title: string) => {
@@ -112,14 +126,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onSignOut }) => {
     updateDashboard(currentDashboard.id, { background });
   };
 
-  const sortedColumns = [...(filteredColumns || [])].sort((a, b) => 
+  const sortedColumns = [...(filteredColumns || [])].sort((a, b) =>
     (a.order || 0) - (b.order || 0)
   );
 
   return (
     <div className="min-h-screen flex flex-col">
       <Header user={user} onSignOut={onSignOut} />
-      
+
       {showDashboardList ? (
         <div className="flex-grow bg-gray-50">
           <div className="w-4/5 mx-auto">
@@ -127,10 +141,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onSignOut }) => {
           </div>
         </div>
       ) : (
-        <div 
+        <div
           className="flex-grow p-4 transition-all duration-300 bg-cover bg-center"
           style={{
-            backgroundImage: currentDashboard?.background 
+            backgroundImage: currentDashboard?.background
               ? `linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), url(${currentDashboard.background})`
               : 'linear-gradient(to bottom right, #3B82F6, #8B5CF6)'
           }}
@@ -196,9 +210,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onSignOut }) => {
                     className="flex gap-4 overflow-x-auto flex-grow pb-4 items-start h-[calc(100vh-12rem)]"
                   >
                     {sortedColumns.map((column, index) => (
-                      <Column 
-                        key={column.id} 
-                        column={column} 
+                      <Column
+                        key={column.id}
+                        column={column}
                         index={index}
                         searchQuery={searchQuery}
                       />
@@ -212,7 +226,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onSignOut }) => {
         </div>
       )}
       <Footer />
-      
+
       <NewColumnModal
         isOpen={isNewColumnModalOpen}
         onClose={() => setIsNewColumnModalOpen(false)}

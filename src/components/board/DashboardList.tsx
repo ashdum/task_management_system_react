@@ -5,6 +5,7 @@ import { useBoardStore } from './useBoard';
 import { Dashboard } from '../../services/data/interface/dataTypes';
 import DashboardStats from '../statistics/DashboardStats';
 import authService from '../../services/auth/authService';
+import { useNavigate } from 'react-router-dom';
 
 // Default gradient for dashboard background when none is set
 const DEFAULT_GRADIENT = 'linear-gradient(to bottom right, #3B82F6, #8B5CF6)';
@@ -76,6 +77,7 @@ const DashboardList: React.FC<Props> = ({ onDashboardSelect }) => {
   const [showStats, setShowStats] = useState<string | null>(null);
   const { dashboards, addDashboard, loadDashboards } = useBoardStore();
   const currentUser = authService.getCurrentUser();
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadDashboards();
@@ -97,18 +99,18 @@ const DashboardList: React.FC<Props> = ({ onDashboardSelect }) => {
       });
   }, [dashboards, searchQuery, sortBy]);
 
-  const ownedDashboards = React.useMemo(() => 
+  const ownedDashboards = React.useMemo(() =>
     filteredDashboards.filter(
       dashboard => currentUser && dashboard?.ownerIds?.includes(currentUser.id)
     ),
     [filteredDashboards, currentUser]
   );
 
-  const memberDashboards = React.useMemo(() => 
+  const memberDashboards = React.useMemo(() =>
     filteredDashboards.filter(
-      dashboard => 
-        currentUser && 
-        !dashboard?.ownerIds?.includes(currentUser.id) && 
+      dashboard =>
+        currentUser &&
+        !dashboard?.ownerIds?.includes(currentUser.id) &&
         dashboard?.members?.some(member => member?.id === currentUser.id)
     ),
     [filteredDashboards, currentUser]
@@ -146,21 +148,21 @@ const DashboardList: React.FC<Props> = ({ onDashboardSelect }) => {
     const isOwner = dashboard.ownerIds?.includes(currentUser.id) || false;
     const memberCount = dashboard.members?.length || 0;
 
-    const backgroundStyle = dashboard.background 
+    const backgroundStyle = dashboard.background
       ? `linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.6)), url(${dashboard.background})`
       : DEFAULT_GRADIENT;
 
     if (viewMode === 'grid') {
       return (
-        <div 
+        <div
           onClick={() => onDashboardSelect(dashboard.id)}
           className="group relative bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden h-[280px] w-full cursor-pointer"
         >
-          <div 
+          <div
             className="absolute inset-0 w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
             style={{ background: backgroundStyle }}
           />
-          
+
           <div className="relative h-full p-6 flex flex-col justify-between z-10">
             <div>
               <div className="flex items-center justify-between mb-4">
@@ -223,11 +225,11 @@ const DashboardList: React.FC<Props> = ({ onDashboardSelect }) => {
     }
 
     return (
-      <div 
+      <div
         onClick={() => onDashboardSelect(dashboard.id)}
         className="w-full p-4 rounded-lg hover:shadow-md transition-all duration-300 flex items-center justify-between group overflow-hidden relative cursor-pointer"
       >
-        <div 
+        <div
           className="absolute inset-0 w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
           style={{ background: backgroundStyle }}
         />
@@ -329,17 +331,15 @@ const DashboardList: React.FC<Props> = ({ onDashboardSelect }) => {
             <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-2 rounded ${
-                  viewMode === 'grid' ? 'bg-white shadow text-blue-600' : 'text-gray-600'
-                }`}
+                className={`p-2 rounded ${viewMode === 'grid' ? 'bg-white shadow text-blue-600' : 'text-gray-600'
+                  }`}
               >
                 <Grid size={20} />
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-2 rounded ${
-                  viewMode === 'list' ? 'bg-white shadow text-blue-600' : 'text-gray-600'
-                }`}
+                className={`p-2 rounded ${viewMode === 'list' ? 'bg-white shadow text-blue-600' : 'text-gray-600'
+                  }`}
               >
                 <List size={20} />
               </button>
@@ -366,7 +366,7 @@ const DashboardList: React.FC<Props> = ({ onDashboardSelect }) => {
               <Shield size={20} className="text-blue-600" />
               Owned by you
             </h3>
-            <div className={viewMode === 'grid' 
+            <div className={viewMode === 'grid'
               ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
               : "space-y-4"
             }>
@@ -383,7 +383,7 @@ const DashboardList: React.FC<Props> = ({ onDashboardSelect }) => {
               <Users size={20} className="text-blue-600" />
               Shared with you
             </h3>
-            <div className={viewMode === 'grid' 
+            <div className={viewMode === 'grid'
               ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
               : "space-y-4"
             }>

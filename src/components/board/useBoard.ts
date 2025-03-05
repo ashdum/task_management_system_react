@@ -11,6 +11,7 @@ export interface BoardState {
   loading: boolean;
   error: string | null;
   loadDashboards: () => Promise<void>;
+  loadDashboardById: (dashboardId: string) => Promise<void>;
   addDashboard: (dashboard: Dashboard) => Promise<void>;
   setCurrentDashboard: (dashboardId: string) => Promise<void>;
   updateDashboard: (dashboardId: string, updates: Partial<Dashboard>) => Promise<void>;
@@ -47,6 +48,27 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     }
   },
 
+  loadDashboardById: async (dashboardId: string) => {
+    console.log('loadDashboardById called with', dashboardId, 'at', new Date().toISOString());
+    try {
+      set({ loading: true, error: null });
+      const response = await dataSource.getDashboard(dashboardId);
+      console.log('loadDashboardById response received at', new Date().toISOString());
+      if (response.error) throw new Error(response.error.message);
+      if (!response.data) throw new Error('Dashboard not found');
+      set(state => ({
+        dashboards: state.dashboards.some(d => d.id === dashboardId)
+          ? state.dashboards.map(d => (d.id === dashboardId ? response.data! : d))
+          : [...state.dashboards, response.data!],
+        currentDashboard: response.data,
+        columns: response.data!.columns || [],
+        loading: false,
+      }));
+    } catch (error) {
+      set({ error: (error as Error).message, loading: false });
+    }
+  },
+
   addDashboard: async (dashboard: Dashboard) => {
     try {
       set({ loading: true, error: null });
@@ -68,23 +90,16 @@ export const useBoardStore = create<BoardState>((set, get) => ({
 
   setCurrentDashboard: async (dashboardId: string) => {
     console.log('setCurrentDashboard called with', dashboardId, 'at', new Date().toISOString());
-    try {
-      set({ loading: true, error: null });
-      const response = await dataSource.getDashboards();
-      console.log('setCurrentDashboard response received at', new Date().toISOString());
-      if (response.error) throw new Error(response.error.message);
-      const dashboards = response.data ?? [];
-      const currentDashboard = dashboards.find(d => d.id === dashboardId);
-      if (!currentDashboard) {
-        throw new Error('Dashboard not found');
-      }
+    const existingDashboard = get().dashboards.find(d => d.id === dashboardId);
+    if (existingDashboard) {
+      // Если дашборд уже есть в состоянии, используем его
       set({
-        currentDashboard,
-        columns: currentDashboard.columns,
-        loading: false,
+        currentDashboard: existingDashboard,
+        columns: existingDashboard.columns || [],
       });
-    } catch (error) {
-      set({ error: (error as Error).message, loading: false });
+    } else {
+      // Если нет, загружаем через loadDashboardById
+      await get().loadDashboardById(dashboardId);
     }
   },
 
